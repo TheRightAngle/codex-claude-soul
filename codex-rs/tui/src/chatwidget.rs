@@ -829,6 +829,8 @@ pub(crate) struct ChatWidget {
     pending_guardian_review_status: PendingGuardianReviewStatus,
     // Semantic status used for terminal-title status rendering.
     terminal_title_status_kind: TerminalTitleStatusKind,
+    // Whimsical verb shown in status display during model turns.
+    current_spinner_verb: String,
     // Previous status header to restore after a transient stream retry.
     retry_status_header: Option<String>,
     // Set when commentary output completes; once stream queues go idle we restore the status row.
@@ -1684,7 +1686,7 @@ impl ChatWidget {
             self.set_status_header(header);
         } else if self.bottom_pane.is_task_running() {
             self.terminal_title_status_kind = TerminalTitleStatusKind::Working;
-            self.set_status_header(String::from("Working"));
+            self.set_status_header(self.current_spinner_verb.clone());
         }
     }
 
@@ -2301,7 +2303,8 @@ impl ChatWidget {
         self.bottom_pane
             .set_interrupt_hint_visible(/*visible*/ true);
         self.terminal_title_status_kind = TerminalTitleStatusKind::Working;
-        self.set_status_header(String::from("Working"));
+        self.current_spinner_verb = crate::spinner_verbs::random_spinner_verb().to_string();
+        self.set_status_header(self.current_spinner_verb.clone());
         self.full_reasoning_buffer.clear();
         self.reasoning_buffer.clear();
         self.request_redraw();
@@ -3372,12 +3375,12 @@ impl ChatWidget {
                     status.details_max_lines,
                 );
             } else if self.current_status.is_guardian_review() {
-                self.set_status_header(String::from("Working"));
+                self.set_status_header(self.current_spinner_verb.clone());
             }
         } else if self.pending_guardian_review_status.is_empty()
             && self.current_status.is_guardian_review()
         {
-            self.set_status_header(String::from("Working"));
+            self.set_status_header(self.current_spinner_verb.clone());
         }
 
         if ev.status == GuardianAssessmentStatus::Approved {
@@ -4743,6 +4746,7 @@ impl ChatWidget {
             current_status: StatusIndicatorState::working(),
             pending_guardian_review_status: PendingGuardianReviewStatus::default(),
             terminal_title_status_kind: TerminalTitleStatusKind::Working,
+            current_spinner_verb: crate::spinner_verbs::random_spinner_verb().to_string(),
             retry_status_header: None,
             pending_status_indicator_restore: false,
             suppress_queue_autosend: false,
@@ -4960,7 +4964,8 @@ impl ChatWidget {
                         // Reset any reasoning header only when we are actually submitting a turn.
                         self.reasoning_buffer.clear();
                         self.full_reasoning_buffer.clear();
-                        self.set_status_header(String::from("Working"));
+                        self.current_spinner_verb = crate::spinner_verbs::random_spinner_verb().to_string();
+                        self.set_status_header(self.current_spinner_verb.clone());
                         self.submit_user_message(user_message);
                     } else {
                         self.queue_user_message(user_message);
@@ -5501,7 +5506,8 @@ impl ChatWidget {
                 if self.is_session_configured() {
                     self.reasoning_buffer.clear();
                     self.full_reasoning_buffer.clear();
-                    self.set_status_header(String::from("Working"));
+                    self.current_spinner_verb = crate::spinner_verbs::random_spinner_verb().to_string();
+                    self.set_status_header(self.current_spinner_verb.clone());
                     self.submit_user_message(user_message);
                 } else {
                     self.queue_user_message(user_message);

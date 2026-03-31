@@ -558,10 +558,10 @@ impl ChatWidget {
             TerminalTitleStatusKind::Thinking if !self.bottom_pane.is_task_running() => {
                 "Ready".to_string()
             }
-            TerminalTitleStatusKind::Working => "Working".to_string(),
+            TerminalTitleStatusKind::Working => self.current_spinner_verb.clone(),
             TerminalTitleStatusKind::WaitingForBackgroundTerminal => "Waiting".to_string(),
             TerminalTitleStatusKind::Undoing => "Undoing".to_string(),
-            TerminalTitleStatusKind::Thinking => "Thinking".to_string(),
+            TerminalTitleStatusKind::Thinking => self.current_spinner_verb.clone(),
         }
     }
 
