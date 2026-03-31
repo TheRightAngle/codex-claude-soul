@@ -96,6 +96,7 @@ mod audio_device {
 }
 mod bottom_pane;
 mod chatwidget;
+pub(crate) mod spinner_verbs;
 mod cli;
 mod clipboard_paste;
 mod clipboard_text;
