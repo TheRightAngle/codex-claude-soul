@@ -7472,11 +7472,11 @@ impl ChatWidget {
 
     fn status_line_reasoning_effort_label(effort: Option<ReasoningEffortConfig>) -> &'static str {
         match effort {
-            Some(ReasoningEffortConfig::Minimal) => "minimal",
-            Some(ReasoningEffortConfig::Low) => "low",
-            Some(ReasoningEffortConfig::Medium) => "medium",
-            Some(ReasoningEffortConfig::High) => "high",
-            Some(ReasoningEffortConfig::XHigh) => "xhigh",
+            Some(ReasoningEffortConfig::Minimal) => "· minimal",
+            Some(ReasoningEffortConfig::Low) => "○ low",
+            Some(ReasoningEffortConfig::Medium) => "◐ medium",
+            Some(ReasoningEffortConfig::High) => "● high",
+            Some(ReasoningEffortConfig::XHigh) => "◉ max",
             None | Some(ReasoningEffortConfig::None) => "default",
         }
     }

@@ -353,7 +353,7 @@ where
             self.needs_newline = false;
         }
         self.indent_stack.push(IndentContext::new(
-            vec![Span::from("> ")],
+            vec![Span::from("▎ ")],
             /*marker*/ None,
             /*is_list*/ false,
         ));
