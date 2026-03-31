@@ -1,24 +1,24 @@
-Use /compact when the conversation gets long to summarize history and free up context.
-Start a fresh idea with /new; the previous session stays in history.
-Use /feedback to send logs to the maintainers when something looks off.
-Switch models or reasoning effort quickly with /model.
-Use /permissions to control when Codex asks for confirmation.
-Run /review to get a code review of your current changes.
-Use /skills to list available skills or ask Codex to use one.
-Use /status to see the current model, approvals, and token usage.
-Use /statusline to configure which items appear in the status line.
-Use /fork to branch the current chat into a new thread.
-Use /init to create an AGENTS.md with project-specific guidance.
-Use /mcp to list configured MCP tools.
+Conversation getting long? /compact summarizes history and frees up context.
+Need a clean slate? /new starts fresh — your previous session stays in history.
+Something look off? /feedback sends logs to the maintainers.
+Want a different model or reasoning level? Try /model.
+/permissions controls when Codex asks for confirmation before acting.
+Want a code review? /review checks your current changes.
+/skills lists available skills — or ask Codex to use one directly.
+Curious about token usage or current model? /status has the details.
+/statusline lets you pick what shows in the status bar.
+/fork branches the current chat into a new thread for side exploration.
+/init creates an AGENTS.md with project-specific guidance for Codex.
+/mcp lists your configured MCP tools.
 Run `codex app` to open Codex Desktop (it installs on macOS if needed).
-Use /personality to customize how Codex communicates.
-Use /rename to rename your threads for easier thread resuming.
-Use the OpenAI docs MCP for API questions; enable it with `codex mcp add openaiDeveloperDocs --url https://developers.openai.com/mcp`.
-Join the OpenAI community Discord: http://discord.gg/openai
-Visit the Codex community forum: https://community.openai.com/c/codex/37
-You can run any shell command from Codex using `!` (e.g. `!ls`)
-Type / to open the command popup; Tab autocompletes slash commands.
-When the composer is empty, press Esc to step back and edit your last message; Enter confirms.
-Press Tab to queue a message when a task is running; otherwise it sends immediately (except `!`).
+/personality lets you tweak how Codex communicates.
+/rename your threads for easier resuming later.
+For API questions, try the OpenAI docs MCP: `codex mcp add openaiDeveloperDocs --url https://developers.openai.com/mcp`
+Join the community on Discord: http://discord.gg/openai
+Visit the Codex forum: https://community.openai.com/c/codex/37
+Run any shell command with ! (e.g. !ls) without leaving the conversation.
+Type / to browse commands; Tab autocompletes.
+Composer empty? Press Esc to step back and edit your last message; Enter confirms.
+Press Tab to queue a message while a task is running; otherwise it sends immediately.
 Paste an image with Ctrl+V to attach it to your next message.
-You can resume a previous conversation by running `codex resume`
+Pick up where you left off with `codex resume`.
