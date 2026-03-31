@@ -11005,14 +11005,14 @@ impl Notification {
 const AGENT_NOTIFICATION_PREVIEW_GRAPHEMES: usize = 200;
 
 const PLACEHOLDERS: [&str; 8] = [
-    "Explain this codebase",
-    "Summarize recent commits",
-    "Implement {feature}",
+    "What are you working on?",
+    "Describe the bug or feature",
+    "Paste an error message to investigate",
+    "Explain how {module} works",
     "Find and fix a bug in @filename",
     "Write tests for @filename",
-    "Improve documentation in @filename",
     "Run /review on my current changes",
-    "Use /skills to list available skills",
+    "Refactor @filename for clarity",
 ];
 
 // Extract the first bold (Markdown) element in the form **...** from `s`.
