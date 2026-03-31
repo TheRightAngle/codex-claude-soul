@@ -36,6 +36,7 @@ pub(crate) const SPINNER_VERBS: &[&str] = &[
     "Choreographing",
     "Churning",
     "Coalescing",
+    "Codexing",
     "Cogitating",
     "Combobulating",
     "Composing",

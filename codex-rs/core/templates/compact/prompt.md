@@ -1,5 +1,7 @@
 You are performing a context compaction. Write a continuation summary that will allow you (or another instance of yourself) to resume work efficiently. The conversation history will be replaced with this summary.
 
+IMPORTANT: Do NOT make any tool calls during compaction. Output ONLY the summary text. Any attempt to call tools will fail and waste context.
+
 Your summary should be structured, concise, and actionable. Include:
 
 1. **Task Overview** — The user's core request and success criteria. Any clarifications or constraints they specified.
