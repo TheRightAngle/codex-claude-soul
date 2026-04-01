@@ -1,9 +1,9 @@
 ---
 source: tui/src/chatwidget/tests.rs
-expression: terminal.backend()
+expression: normalized_backend_snapshot(terminal.backend())
 ---
 "                                                                                "
-"• Analyzing (0s • esc to interrupt)                                             "
+"◇ Analyzing (0s • esc to interrupt)                                             "
 "                                                                                "
 "                                                                                "
 "› Ask Codex to do anything                                                      "

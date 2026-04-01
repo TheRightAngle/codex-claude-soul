@@ -260,6 +260,8 @@ fn is_decorative_marker_token(raw_token: &str, token: &str) -> bool {
         "-" | "*"
             | "+"
             | "•"
+            | "◇"
+            | "◆"
             | "◦"
             | "▪"
             | ">"

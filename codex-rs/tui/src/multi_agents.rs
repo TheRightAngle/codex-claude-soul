@@ -60,9 +60,9 @@ pub(crate) struct SpawnRequestSummary {
 
 pub(crate) fn agent_picker_status_dot_spans(is_closed: bool) -> Vec<Span<'static>> {
     let dot = if is_closed {
-        "•".into()
+        "◆".dim()
     } else {
-        "•".green()
+        "◇".green()
     };
     vec![dot, " ".into()]
 }

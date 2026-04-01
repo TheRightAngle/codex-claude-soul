@@ -426,7 +426,7 @@ impl ReasoningSummaryCell {
         adaptive_wrap_lines(
             &summary_lines,
             RtOptions::new(width as usize)
-                .initial_indent("• ".dim().into())
+                .initial_indent("◆ ".dim().into())
                 .subsequent_indent("  ".into()),
         )
     }
@@ -467,7 +467,7 @@ impl HistoryCell for AgentMessageCell {
             &self.lines,
             RtOptions::new(width as usize)
                 .initial_indent(if self.is_first_line {
-                    "• ".dim().into()
+                    "◆ ".dim().into()
                 } else {
                     "  ".into()
                 })
@@ -608,7 +608,7 @@ impl HistoryCell for UnifiedExecInteractionCell {
         let waited_only = self.stdin.is_empty();
 
         let mut header_spans = if waited_only {
-            vec!["• Waited for background terminal".bold()]
+            vec!["◆ Waited for background terminal".bold()]
         } else {
             vec!["↳ ".dim(), "Interacted with background terminal".bold()]
         };
@@ -1496,8 +1496,8 @@ impl HistoryCell for McpToolCallCell {
         let mut lines: Vec<Line<'static>> = Vec::new();
         let status = self.success();
         let bullet = match status {
-            Some(true) => "•".green().bold(),
-            Some(false) => "•".red().bold(),
+            Some(true) => "◆".green().bold(),
+            Some(false) => "◆".red().bold(),
             None => spinner(Some(self.start_time), self.animations_enabled),
         };
         let header_text = if status.is_some() {
@@ -1650,7 +1650,7 @@ impl WebSearchCell {
 impl HistoryCell for WebSearchCell {
     fn display_lines(&self, width: u16) -> Vec<Line<'static>> {
         let bullet = if self.completed {
-            "•".dim()
+            "◆".dim()
         } else {
             spinner(Some(self.start_time), self.animations_enabled)
         };
@@ -2148,7 +2148,7 @@ pub(crate) fn new_mcp_tools_output_from_statuses(
 }
 
 pub(crate) fn new_info_event(message: String, hint: Option<String>) -> PlainHistoryCell {
-    let mut line = vec!["• ".dim(), message.into()];
+    let mut line = vec!["◆ ".dim(), message.into()];
     if let Some(hint) = hint {
         line.push(" ".into());
         line.push(hint.dark_gray());
@@ -2236,7 +2236,7 @@ impl HistoryCell for RequestUserInputResultCell {
             .count();
         let unanswered = total.saturating_sub(answered);
 
-        let mut header = vec!["•".dim(), " ".into(), "Questions".bold()];
+        let mut header = vec!["◆".dim(), " ".into(), "Questions".bold()];
         header.push(format!(" {answered}/{total} answered").dim());
         if self.interrupted {
             header.push(" (interrupted)".cyan());
@@ -2395,7 +2395,7 @@ pub(crate) struct ProposedPlanStreamCell {
 impl HistoryCell for ProposedPlanCell {
     fn display_lines(&self, width: u16) -> Vec<Line<'static>> {
         let mut lines: Vec<Line<'static>> = Vec::new();
-        lines.push(vec!["• ".dim(), "Proposed Plan".bold()].into());
+        lines.push(vec!["◆ ".dim(), "Proposed Plan".bold()].into());
         lines.push(Line::from(" "));
 
         let mut plan_lines: Vec<Line<'static>> = vec![Line::from(" ")];
@@ -2464,7 +2464,7 @@ impl HistoryCell for PlanUpdateCell {
         };
 
         let mut lines: Vec<Line<'static>> = vec![];
-        lines.push(vec!["• ".dim(), "Updated Plan".bold()].into());
+        lines.push(vec!["◆ ".dim(), "Updated Plan".bold()].into());
 
         let mut indented_lines = vec![];
         let note = self
@@ -2532,7 +2532,7 @@ pub(crate) fn new_view_image_tool_call(path: PathBuf, cwd: &Path) -> PlainHistor
     let display_path = display_path_for(&path, cwd);
 
     let lines: Vec<Line<'static>> = vec![
-        vec!["• ".dim(), "Viewed Image".bold()].into(),
+        vec!["◆ ".dim(), "Viewed Image".bold()].into(),
         vec!["  └ ".dim(), display_path.dim()].into(),
     ];
 
@@ -2547,7 +2547,7 @@ pub(crate) fn new_image_generation_call(
     let detail = revised_prompt.unwrap_or_else(|| call_id.clone());
 
     let mut lines: Vec<Line<'static>> = vec![
-        vec!["• ".dim(), "Generated Image:".bold()].into(),
+        vec!["◆ ".dim(), "Generated Image:".bold()].into(),
         vec!["  └ ".dim(), detail.dim()].into(),
     ];
     if let Some(saved_path) = saved_path {
@@ -2950,7 +2950,7 @@ mod tests {
         assert_eq!(
             render_lines(&cell.display_lines(/*width*/ 80)),
             vec![
-                "• Generated Image:".to_string(),
+                "◆ Generated Image:".to_string(),
                 "  └ A tiny blue square".to_string(),
                 format!("  └ Saved to: {saved_path}"),
             ],
@@ -2997,7 +2997,7 @@ mod tests {
     fn unified_exec_interaction_cell_renders_wait() {
         let cell = new_unified_exec_interaction(/*command_display*/ None, String::new());
         let lines = render_transcript(&cell);
-        assert_eq!(lines, vec!["• Waited for background terminal"]);
+        assert_eq!(lines, vec!["◆ Waited for background terminal"]);
     }
 
     #[test]
@@ -3520,7 +3520,7 @@ mod tests {
         assert_eq!(
             rendered,
             vec![
-                "• Searched example search query with several generic words to".to_string(),
+                "◆ Searched example search query with several generic words to".to_string(),
                 "  exercise wrapping".to_string(),
             ]
         );
@@ -3539,7 +3539,7 @@ mod tests {
         );
         let rendered = render_lines(&cell.display_lines(/*width*/ 64));
 
-        assert_eq!(rendered, vec!["• Searched short query".to_string()]);
+        assert_eq!(rendered, vec!["◆ Searched short query".to_string()]);
     }
 
     #[test]
@@ -4548,10 +4548,10 @@ mod tests {
         );
 
         let rendered_display = render_lines(&cell.display_lines(/*width*/ 80));
-        assert_eq!(rendered_display, vec!["• Detailed reasoning goes here."]);
+        assert_eq!(rendered_display, vec!["◆ Detailed reasoning goes here."]);
 
         let rendered_transcript = render_transcript(cell.as_ref());
-        assert_eq!(rendered_transcript, vec!["• Detailed reasoning goes here."]);
+        assert_eq!(rendered_transcript, vec!["◆ Detailed reasoning goes here."]);
     }
 
     #[test]
@@ -4594,7 +4594,7 @@ mod tests {
             })
             .collect::<String>();
         assert!(
-            first_row.contains("•"),
+            first_row.contains("◆") || first_row.contains("◇"),
             "expected first rendered row to keep summary bullet visible, got: {first_row:?}"
         );
     }
@@ -4605,7 +4605,7 @@ mod tests {
             new_reasoning_summary_block("Detailed reasoning goes here.".to_string(), &test_cwd());
 
         let rendered = render_transcript(cell.as_ref());
-        assert_eq!(rendered, vec!["• Detailed reasoning goes here."]);
+        assert_eq!(rendered, vec!["◆ Detailed reasoning goes here."]);
     }
 
     #[tokio::test]
@@ -4619,7 +4619,7 @@ mod tests {
         );
 
         let rendered_display = render_lines(&cell.display_lines(/*width*/ 80));
-        assert_eq!(rendered_display, vec!["• Detailed reasoning goes here."]);
+        assert_eq!(rendered_display, vec!["◆ Detailed reasoning goes here."]);
     }
 
     #[test]
@@ -4630,7 +4630,7 @@ mod tests {
         );
 
         let rendered = render_transcript(cell.as_ref());
-        assert_eq!(rendered, vec!["• **High level reasoning without closing"]);
+        assert_eq!(rendered, vec!["◆ **High level reasoning without closing"]);
     }
 
     #[test]
@@ -4641,7 +4641,7 @@ mod tests {
         );
 
         let rendered = render_transcript(cell.as_ref());
-        assert_eq!(rendered, vec!["• High level reasoning without closing"]);
+        assert_eq!(rendered, vec!["◆ High level reasoning without closing"]);
 
         let cell = new_reasoning_summary_block(
             "**High level reasoning without closing**\n\n  ".to_string(),
@@ -4649,7 +4649,7 @@ mod tests {
         );
 
         let rendered = render_transcript(cell.as_ref());
-        assert_eq!(rendered, vec!["• High level reasoning without closing"]);
+        assert_eq!(rendered, vec!["◆ High level reasoning without closing"]);
     }
 
     #[test]
@@ -4660,10 +4660,10 @@ mod tests {
         );
 
         let rendered_display = render_lines(&cell.display_lines(/*width*/ 80));
-        assert_eq!(rendered_display, vec!["• We should fix the bug next."]);
+        assert_eq!(rendered_display, vec!["◆ We should fix the bug next."]);
 
         let rendered_transcript = render_transcript(cell.as_ref());
-        assert_eq!(rendered_transcript, vec!["• We should fix the bug next."]);
+        assert_eq!(rendered_transcript, vec!["◆ We should fix the bug next."]);
     }
 
     #[test]

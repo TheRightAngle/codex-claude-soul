@@ -181,17 +181,17 @@ pub(crate) fn output_lines(
 
 pub(crate) fn spinner(start_time: Option<Instant>, animations_enabled: bool) -> Span<'static> {
     if !animations_enabled {
-        return "•".dim();
+        return "◇".dim();
     }
     let elapsed = start_time.map(|st| st.elapsed()).unwrap_or_default();
     if supports_color::on_cached(supports_color::Stream::Stdout)
         .map(|level| level.has_16m)
         .unwrap_or(false)
     {
-        shimmer_spans("•")[0].clone()
+        shimmer_spans("◇")[0].clone()
     } else {
         let blink_on = (elapsed.as_millis() / 600).is_multiple_of(2);
-        if blink_on { "•".into() } else { "◦".dim() }
+        if blink_on { "◇".into() } else { "◇".dim() }
     }
 }
 
@@ -256,7 +256,7 @@ impl ExecCell {
             if self.is_active() {
                 spinner(self.active_start_time(), self.animations_enabled())
             } else {
-                "•".dim()
+                "◆".dim()
             },
             " ".into(),
             if self.is_active() {
@@ -360,8 +360,8 @@ impl ExecCell {
         let layout = EXEC_DISPLAY_LAYOUT;
         let success = call.output.as_ref().map(|o| o.exit_code == 0);
         let bullet = match success {
-            Some(true) => "•".green().bold(),
-            Some(false) => "•".red().bold(),
+            Some(true) => "◆".green().bold(),
+            Some(false) => "◆".red().bold(),
             None => spinner(call.start_time, self.animations_enabled()),
         };
         let is_interaction = call.is_unified_exec_interaction();
