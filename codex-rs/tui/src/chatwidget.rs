@@ -7479,7 +7479,7 @@ impl ChatWidget {
             Some(ReasoningEffortConfig::Low) => "○ low",
             Some(ReasoningEffortConfig::Medium) => "◐ medium",
             Some(ReasoningEffortConfig::High) => "● high",
-            Some(ReasoningEffortConfig::XHigh) => "◉ max",
+            Some(ReasoningEffortConfig::XHigh) => "◉ xhigh",
             None | Some(ReasoningEffortConfig::None) => "default",
         }
     }
