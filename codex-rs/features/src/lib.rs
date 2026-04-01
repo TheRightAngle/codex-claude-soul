@@ -184,6 +184,16 @@ pub enum Feature {
     ResponsesWebsockets,
     /// Legacy rollout flag for Responses API WebSocket transport v2 experiments.
     ResponsesWebsocketsV2,
+
+    // Prompt section features (Claude Soul Edition).
+    /// Include verification-before-completion instructions in the system prompt.
+    PromptVerification,
+    /// Include next-step suggestions instructions in the system prompt.
+    PromptSuggestions,
+    /// Include skill discovery instructions in the system prompt.
+    PromptSkills,
+    /// Include educational insight blocks instructions in the system prompt.
+    PromptInsights,
 }
 
 impl Feature {
@@ -860,6 +870,47 @@ pub const FEATURES: &[FeatureSpec] = &[
         key: "responses_websockets_v2",
         stage: Stage::Removed,
         default_enabled: false,
+    },
+    // Prompt section features (Claude Soul Edition).
+    FeatureSpec {
+        id: Feature::PromptVerification,
+        key: "prompt_verification",
+        stage: Stage::Experimental {
+            name: "Verification",
+            menu_description: "Verify work before claiming completion",
+            announcement: "",
+        },
+        default_enabled: true,
+    },
+    FeatureSpec {
+        id: Feature::PromptSuggestions,
+        key: "prompt_suggestions",
+        stage: Stage::Experimental {
+            name: "Suggestions",
+            menu_description: "Suggest next steps after completing tasks",
+            announcement: "",
+        },
+        default_enabled: true,
+    },
+    FeatureSpec {
+        id: Feature::PromptSkills,
+        key: "prompt_skills",
+        stage: Stage::Experimental {
+            name: "Skill Discovery",
+            menu_description: "Proactively surface relevant slash commands",
+            announcement: "",
+        },
+        default_enabled: true,
+    },
+    FeatureSpec {
+        id: Feature::PromptInsights,
+        key: "prompt_insights",
+        stage: Stage::Experimental {
+            name: "Insights",
+            menu_description: "Educational insight blocks while coding",
+            announcement: "",
+        },
+        default_enabled: true,
     },
 ];
 
