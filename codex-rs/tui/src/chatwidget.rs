@@ -2384,6 +2384,17 @@ impl ChatWidget {
         });
 
         self.maybe_show_pending_rate_limit_prompt();
+
+        // Update composer placeholder with a contextual suggestion from the agent's response.
+        // Mirrors Claude Code's prompt suggestion system — the dimmed text in the composer
+        // changes after each turn to reflect what the user might naturally type next.
+        if !from_replay {
+            if let Some(ref output) = self.last_copyable_output {
+                if let Some(suggestion) = extract_next_step_suggestion(output) {
+                    self.bottom_pane.set_composer_placeholder(suggestion);
+                }
+            }
+        }
     }
 
     fn maybe_prompt_plan_implementation(&mut self) {
@@ -11100,6 +11111,53 @@ pub(crate) fn show_review_commit_picker_with_entries(
         search_placeholder: Some("Type to search commits".to_string()),
         ..Default::default()
     });
+}
+
+/// Extracts a contextual next-step suggestion from the agent's response.
+///
+/// Looks for common patterns at the end of agent messages that suggest what
+/// the user might want to do next. Returns a short phrase suitable for the
+/// composer placeholder.
+fn extract_next_step_suggestion(message: &str) -> Option<String> {
+    let lines: Vec<&str> = message.lines().rev().take(5).collect();
+
+    for line in &lines {
+        let trimmed = line.trim().trim_start_matches('-').trim_start_matches('*').trim();
+
+        // Look for "Want me to..." or "Should I..." offers
+        if trimmed.starts_with("Want me to ")
+            || trimmed.starts_with("Should I ")
+            || trimmed.starts_with("Shall I ")
+        {
+            // Convert "Want me to run the tests?" → "run the tests"
+            let suggestion = trimmed
+                .trim_start_matches("Want me to ")
+                .trim_start_matches("Should I ")
+                .trim_start_matches("Shall I ")
+                .trim_end_matches('?')
+                .trim_end_matches('.')
+                .to_string();
+            if suggestion.len() >= 3 && suggestion.len() <= 60 {
+                return Some(suggestion);
+            }
+        }
+
+        // Look for backtick-wrapped commands like `npm test` or `/review`
+        if let Some(start) = trimmed.find('`') {
+            if let Some(end) = trimmed[start + 1..].find('`') {
+                let cmd = &trimmed[start + 1..start + 1 + end];
+                if cmd.len() >= 2
+                    && cmd.len() <= 40
+                    && !cmd.contains(' ') | cmd.starts_with('/')
+                    && !cmd.contains('\n')
+                {
+                    return Some(cmd.to_string());
+                }
+            }
+        }
+    }
+
+    None
 }
 
 #[cfg(test)]

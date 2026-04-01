@@ -321,6 +321,12 @@ impl BottomPane {
         self.request_redraw();
     }
 
+    /// Updates the composer placeholder text with a contextual suggestion.
+    pub fn set_composer_placeholder(&mut self, text: String) {
+        self.composer.set_placeholder_text(text);
+        self.request_redraw();
+    }
+
     pub fn set_realtime_conversation_enabled(&mut self, enabled: bool) {
         self.composer.set_realtime_conversation_enabled(enabled);
         self.request_redraw();
