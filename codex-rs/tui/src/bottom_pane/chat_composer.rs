@@ -3681,9 +3681,9 @@ impl ChatComposer {
         }
         if !textarea_rect.is_empty() {
             let prompt = if self.input_enabled {
-                "›".bold()
+                "❯".bold()
             } else {
-                "›".dim()
+                "❯".dim()
             };
             buf.set_span(
                 textarea_rect.x - LIVE_PREFIX_COLS,
