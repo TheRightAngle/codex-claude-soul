@@ -362,6 +362,11 @@ const SECTION_DREAM: &str = include_str!("prompts/sections/dream.md");
 const SECTION_ADVISOR: &str = include_str!("prompts/sections/advisor.md");
 const SECTION_WORKTREE: &str = include_str!("prompts/sections/worktree.md");
 
+const SECTION_COMPACTION: &str = include_str!("prompts/sections/compaction.md");
+const SECTION_SIMPLIFY: &str = include_str!("prompts/sections/simplify.md");
+const SECTION_STUCK: &str = include_str!("prompts/sections/stuck.md");
+const SECTION_SESSION_TITLES: &str = include_str!("prompts/sections/session_titles.md");
+
 // User-togglable section (like Claude Code's outputStyle setting):
 const SECTION_INSIGHTS: &str = include_str!("prompts/sections/insights.md");
 
@@ -378,6 +383,10 @@ pub struct PromptFeatures {
     pub dream: bool,
     pub advisor: bool,
     pub worktree: bool,
+    pub compaction: bool,
+    pub simplify: bool,
+    pub stuck: bool,
+    pub session_titles: bool,
     // User-togglable (Experimental in Feature system)
     pub insights: bool,
 }
@@ -392,6 +401,10 @@ impl Default for PromptFeatures {
             dream: true,
             advisor: true,
             worktree: true,
+            compaction: true,
+            simplify: true,
+            stuck: true,
+            session_titles: true,
             insights: true,
         }
     }
@@ -434,6 +447,18 @@ pub fn assemble_base_instructions(features: &PromptFeatures) -> String {
     }
     if features.worktree {
         sections.push(SECTION_WORKTREE);
+    }
+    if features.compaction {
+        sections.push(SECTION_COMPACTION);
+    }
+    if features.simplify {
+        sections.push(SECTION_SIMPLIFY);
+    }
+    if features.stuck {
+        sections.push(SECTION_STUCK);
+    }
+    if features.session_titles {
+        sections.push(SECTION_SESSION_TITLES);
     }
 
     // --- User-togglable features ---
