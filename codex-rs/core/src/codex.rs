@@ -566,13 +566,21 @@ impl Codex {
         // Resolve base instructions for the session. Priority order:
         // 1. config.base_instructions override
         // 2. conversation history => session_meta.base_instructions
-        // 3. base_instructions for current model
+        // 3. Modular prompt assembly (Claude Soul Edition)
+        // 4. base_instructions for current model (fallback)
         let model_info = models_manager.get_model_info(model.as_str(), &config).await;
         let base_instructions = config
             .base_instructions
             .clone()
             .or_else(|| conversation_history.get_base_instructions().map(|s| s.text))
-            .unwrap_or_else(|| model_info.get_model_instructions(config.personality));
+            .unwrap_or_else(|| {
+                // Build PromptFeatures from the Feature flag system.
+                let prompt_features = codex_protocol::models::PromptFeatures {
+                    insights: config.features.enabled(codex_features::Feature::PromptInsights),
+                    ..codex_protocol::models::PromptFeatures::default()
+                };
+                codex_protocol::models::assemble_base_instructions(&prompt_features)
+            });
 
         // Respect thread-start tools. When missing (resumed/forked threads), read from the db
         // first, then fall back to rollout-file tools.
