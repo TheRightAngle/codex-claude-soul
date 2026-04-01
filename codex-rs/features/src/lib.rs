@@ -194,6 +194,14 @@ pub enum Feature {
     PromptSkills,
     /// Include educational insight blocks instructions in the system prompt.
     PromptInsights,
+    /// Include persistent cross-session memory instructions in the system prompt.
+    PromptMemory,
+    /// Include memory consolidation (dream) instructions in the system prompt.
+    PromptDream,
+    /// Include strategic review (advisor) instructions in the system prompt.
+    PromptAdvisor,
+    /// Include git worktree instructions in the system prompt.
+    PromptWorktree,
 }
 
 impl Feature {
@@ -888,6 +896,30 @@ pub const FEATURES: &[FeatureSpec] = &[
     FeatureSpec {
         id: Feature::PromptSkills,
         key: "prompt_skills",
+        stage: Stage::Stable,
+        default_enabled: true,
+    },
+    FeatureSpec {
+        id: Feature::PromptMemory,
+        key: "prompt_memory",
+        stage: Stage::Stable,
+        default_enabled: true,
+    },
+    FeatureSpec {
+        id: Feature::PromptDream,
+        key: "prompt_dream",
+        stage: Stage::Stable,
+        default_enabled: true,
+    },
+    FeatureSpec {
+        id: Feature::PromptAdvisor,
+        key: "prompt_advisor",
+        stage: Stage::Stable,
+        default_enabled: true,
+    },
+    FeatureSpec {
+        id: Feature::PromptWorktree,
+        key: "prompt_worktree",
         stage: Stage::Stable,
         default_enabled: true,
     },

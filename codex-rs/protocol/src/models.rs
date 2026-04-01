@@ -356,19 +356,32 @@ const SECTION_OUTPUT: &str = include_str!("prompts/sections/output.md");
 const SECTION_HOW_YOU_WORK: &str = include_str!("prompts/sections/how_you_work.md");
 const SECTION_GIT_PROTOCOL: &str = include_str!("prompts/sections/git_protocol.md");
 
-// Configurable sections (like Claude Code's dynamic session-specific half):
+// Always-on organic sections (like Claude Code's stable features):
 const SECTION_VERIFICATION: &str = include_str!("prompts/sections/verification.md");
 const SECTION_SUGGESTIONS: &str = include_str!("prompts/sections/suggestions.md");
 const SECTION_SKILLS: &str = include_str!("prompts/sections/skills.md");
+const SECTION_MEMORY: &str = include_str!("prompts/sections/memory.md");
+const SECTION_DREAM: &str = include_str!("prompts/sections/dream.md");
+const SECTION_ADVISOR: &str = include_str!("prompts/sections/advisor.md");
+const SECTION_WORKTREE: &str = include_str!("prompts/sections/worktree.md");
+
+// User-togglable section (like Claude Code's outputStyle setting):
 const SECTION_INSIGHTS: &str = include_str!("prompts/sections/insights.md");
 
 /// Feature toggles for configurable prompt sections.
-/// All default to true (Claude Code experience is the default).
+/// Organic features default to true and are not user-togglable (matches Claude Code).
+/// Only `insights` is user-togglable via /experimental.
 #[derive(Debug, Clone)]
 pub struct PromptFeatures {
+    // Organic — always on (Stable in Feature system)
     pub verification: bool,
     pub suggestions: bool,
     pub skills: bool,
+    pub memory: bool,
+    pub dream: bool,
+    pub advisor: bool,
+    pub worktree: bool,
+    // User-togglable (Experimental in Feature system)
     pub insights: bool,
 }
 
@@ -378,6 +391,10 @@ impl Default for PromptFeatures {
             verification: true,
             suggestions: true,
             skills: true,
+            memory: true,
+            dream: true,
+            advisor: true,
+            worktree: true,
             insights: true,
         }
     }
@@ -399,7 +416,7 @@ pub fn assemble_base_instructions(features: &PromptFeatures) -> String {
         SECTION_HOW_YOU_WORK,
     ];
 
-    // --- Configurable (Claude Code: dynamic/session-specific) ---
+    // --- Organic features (always-on, matches Claude Code's stable features) ---
     if features.verification {
         sections.push(SECTION_VERIFICATION);
     }
@@ -409,6 +426,20 @@ pub fn assemble_base_instructions(features: &PromptFeatures) -> String {
     if features.skills {
         sections.push(SECTION_SKILLS);
     }
+    if features.memory {
+        sections.push(SECTION_MEMORY);
+    }
+    if features.dream {
+        sections.push(SECTION_DREAM);
+    }
+    if features.advisor {
+        sections.push(SECTION_ADVISOR);
+    }
+    if features.worktree {
+        sections.push(SECTION_WORKTREE);
+    }
+
+    // --- User-togglable features ---
     if features.insights {
         sections.push(SECTION_INSIGHTS);
     }
