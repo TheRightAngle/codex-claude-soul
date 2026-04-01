@@ -186,8 +186,8 @@ mod tests {
                     .collect::<Vec<_>>()
                     .join("");
                 let t = s.trim();
-                // Ignore quote-only blank lines like ">" inserted at paragraph boundaries.
-                !(t.is_empty() || t == ">")
+                // Ignore quote-only blank lines like "▎" inserted at paragraph boundaries.
+                !(t.is_empty() || t == "▎")
             })
             .collect();
         assert_eq!(non_blank.len(), 2);

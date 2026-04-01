@@ -2303,7 +2303,10 @@ impl ChatWidget {
         self.bottom_pane
             .set_interrupt_hint_visible(/*visible*/ true);
         self.terminal_title_status_kind = TerminalTitleStatusKind::Working;
-        self.current_spinner_verb = crate::spinner_verbs::random_spinner_verb().to_string();
+        #[cfg(not(test))]
+        {
+            self.current_spinner_verb = crate::spinner_verbs::random_spinner_verb().to_string();
+        }
         self.set_status_header(self.current_spinner_verb.clone());
         self.full_reasoning_buffer.clear();
         self.reasoning_buffer.clear();

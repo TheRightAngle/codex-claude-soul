@@ -2117,7 +2117,7 @@ async fn make_chatwidget_manual(
         plan_stream_controller: None,
         pending_guardian_review_status: PendingGuardianReviewStatus::default(),
         terminal_title_status_kind: TerminalTitleStatusKind::Working,
-        current_spinner_verb: crate::spinner_verbs::random_spinner_verb().to_string(),
+        current_spinner_verb: "Working".to_string(),
         last_copyable_output: None,
         pending_turn_copyable_output: None,
         running_commands: HashMap::new(),
@@ -13246,7 +13246,7 @@ async fn status_line_model_with_reasoning_includes_fast_for_gpt54_only() {
 
     assert_eq!(
         status_line_text(&chat),
-        Some(format!("gpt-5.4 xhigh fast · 100% left · {test_cwd}"))
+        Some(format!("gpt-5.4 ◉ max fast · 100% left · {test_cwd}"))
     );
 
     chat.set_model("gpt-5.3-codex");
@@ -13254,7 +13254,7 @@ async fn status_line_model_with_reasoning_includes_fast_for_gpt54_only() {
 
     assert_eq!(
         status_line_text(&chat),
-        Some(format!("gpt-5.3-codex xhigh · 100% left · {test_cwd}"))
+        Some(format!("gpt-5.3-codex ◉ max · 100% left · {test_cwd}"))
     );
 }
 
@@ -13280,7 +13280,7 @@ async fn status_line_model_with_reasoning_updates_on_mode_switch_without_manual_
 
     assert_eq!(
         status_line_text(&chat),
-        Some("gpt-5.3-codex high".to_string())
+        Some("gpt-5.3-codex ● high".to_string())
     );
 
     let plan_mask = collaboration_modes::plan_mask(chat.model_catalog.as_ref())
@@ -13289,7 +13289,7 @@ async fn status_line_model_with_reasoning_updates_on_mode_switch_without_manual_
 
     assert_eq!(
         status_line_text(&chat),
-        Some("gpt-5.3-codex medium".to_string())
+        Some("gpt-5.3-codex ◐ medium".to_string())
     );
 
     let default_mask = collaboration_modes::default_mask(chat.model_catalog.as_ref())
@@ -13298,7 +13298,7 @@ async fn status_line_model_with_reasoning_updates_on_mode_switch_without_manual_
 
     assert_eq!(
         status_line_text(&chat),
-        Some("gpt-5.3-codex high".to_string())
+        Some("gpt-5.3-codex ● high".to_string())
     );
 }
 

@@ -656,7 +656,7 @@ where
         let blockquote_active = self
             .indent_stack
             .iter()
-            .any(|ctx| ctx.prefix.iter().any(|s| s.content.contains('>')));
+            .any(|ctx| ctx.prefix.iter().any(|s| s.content.contains('▎')));
         let style = if blockquote_active {
             self.styles.blockquote
         } else {
@@ -1035,9 +1035,9 @@ mod tests {
         assert_eq!(
             lines,
             vec![
-                "> block quote with".to_string(),
-                "> content that should".to_string(),
-                "> wrap nicely".to_string(),
+                "▎ block quote with".to_string(),
+                "▎ content that should".to_string(),
+                "▎ wrap nicely".to_string(),
             ]
         );
     }
@@ -1051,8 +1051,8 @@ mod tests {
             lines,
             vec![
                 "- list item".to_string(),
-                "  > block quote inside".to_string(),
-                "  > list that wraps".to_string(),
+                "  ▎ block quote inside".to_string(),
+                "  ▎ list that wraps".to_string(),
             ]
         );
     }
@@ -1066,8 +1066,8 @@ mod tests {
             lines,
             vec![
                 "1. item with quote".to_string(),
-                "   > quoted text that".to_string(),
-                "   > should wrap".to_string(),
+                "   ▎ quoted text that".to_string(),
+                "   ▎ should wrap".to_string(),
             ]
         );
     }
