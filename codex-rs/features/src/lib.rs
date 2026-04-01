@@ -872,36 +872,26 @@ pub const FEATURES: &[FeatureSpec] = &[
         default_enabled: false,
     },
     // Prompt section features (Claude Soul Edition).
+    // Verification, Suggestions, Skills are always-on (no user toggle) — matches Claude Code.
     FeatureSpec {
         id: Feature::PromptVerification,
         key: "prompt_verification",
-        stage: Stage::Experimental {
-            name: "Verification",
-            menu_description: "Verify work before claiming completion",
-            announcement: "",
-        },
+        stage: Stage::Stable,
         default_enabled: true,
     },
     FeatureSpec {
         id: Feature::PromptSuggestions,
         key: "prompt_suggestions",
-        stage: Stage::Experimental {
-            name: "Suggestions",
-            menu_description: "Suggest next steps after completing tasks",
-            announcement: "",
-        },
+        stage: Stage::Stable,
         default_enabled: true,
     },
     FeatureSpec {
         id: Feature::PromptSkills,
         key: "prompt_skills",
-        stage: Stage::Experimental {
-            name: "Skill Discovery",
-            menu_description: "Proactively surface relevant slash commands",
-            announcement: "",
-        },
+        stage: Stage::Stable,
         default_enabled: true,
     },
+    // Insights is user-togglable — matches Claude Code's outputStyle setting.
     FeatureSpec {
         id: Feature::PromptInsights,
         key: "prompt_insights",
