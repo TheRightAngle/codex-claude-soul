@@ -361,14 +361,10 @@ const SECTION_ADVISOR: &str = include_str!("prompts/sections/advisor.md");
 const SECTION_WORKTREE: &str = include_str!("prompts/sections/worktree.md");
 // Memory/dream handled natively by Feature::MemoryTool (core/src/memories/)
 
-// Invoked-only sections — available for command handlers, not assembled into base instructions.
-#[allow(dead_code)]
-pub const SECTION_COMPACTION: &str = include_str!("prompts/sections/compaction.md");
-#[allow(dead_code)]
-pub const SECTION_SIMPLIFY: &str = include_str!("prompts/sections/simplify.md");
 const SECTION_STUCK: &str = include_str!("prompts/sections/stuck.md");
-#[allow(dead_code)]
-pub const SECTION_SESSION_TITLES: &str = include_str!("prompts/sections/session_titles.md");
+// Compaction: wired natively via core/templates/compact/prompt.md
+// Simplify: wired natively via skills/src/assets/samples/simplify/SKILL.md
+// Session titles: wired natively via derive_session_title() in tasks/mod.rs
 
 // User-togglable section (like Claude Code's outputStyle setting):
 const SECTION_INSIGHTS: &str = include_str!("prompts/sections/insights.md");
