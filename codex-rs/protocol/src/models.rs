@@ -340,7 +340,84 @@ pub enum ResponseItem {
     Other,
 }
 
+// Legacy monolithic prompt — kept for backwards compatibility.
 pub const BASE_INSTRUCTIONS_DEFAULT: &str = include_str!("prompts/base_instructions/default.md");
+
+// --- Modular prompt sections (mirrors Claude Code's function-per-section architecture) ---
+
+// Always-on sections (like Claude Code's static cacheable half):
+const SECTION_IDENTITY: &str = include_str!("prompts/sections/identity.md");
+const SECTION_SYSTEM: &str = include_str!("prompts/sections/system.md");
+const SECTION_TONE: &str = include_str!("prompts/sections/tone.md");
+const SECTION_DOING_TASKS: &str = include_str!("prompts/sections/doing_tasks.md");
+const SECTION_ACTIONS: &str = include_str!("prompts/sections/actions.md");
+const SECTION_TOOLS: &str = include_str!("prompts/sections/tools.md");
+const SECTION_OUTPUT: &str = include_str!("prompts/sections/output.md");
+const SECTION_HOW_YOU_WORK: &str = include_str!("prompts/sections/how_you_work.md");
+const SECTION_GIT_PROTOCOL: &str = include_str!("prompts/sections/git_protocol.md");
+
+// Configurable sections (like Claude Code's dynamic session-specific half):
+const SECTION_VERIFICATION: &str = include_str!("prompts/sections/verification.md");
+const SECTION_SUGGESTIONS: &str = include_str!("prompts/sections/suggestions.md");
+const SECTION_SKILLS: &str = include_str!("prompts/sections/skills.md");
+const SECTION_INSIGHTS: &str = include_str!("prompts/sections/insights.md");
+
+/// Feature toggles for configurable prompt sections.
+/// All default to true (Claude Code experience is the default).
+#[derive(Debug, Clone)]
+pub struct PromptFeatures {
+    pub verification: bool,
+    pub suggestions: bool,
+    pub skills: bool,
+    pub insights: bool,
+}
+
+impl Default for PromptFeatures {
+    fn default() -> Self {
+        Self {
+            verification: true,
+            suggestions: true,
+            skills: true,
+            insights: true,
+        }
+    }
+}
+
+/// Assembles the base instructions from modular sections, mirroring Claude Code's
+/// dynamic prompt assembly. Always-on sections are always included; configurable
+/// sections are gated by `PromptFeatures`.
+pub fn assemble_base_instructions(features: &PromptFeatures) -> String {
+    let mut sections: Vec<&str> = vec![
+        // --- Always-on (Claude Code: static/cacheable) ---
+        SECTION_IDENTITY,
+        SECTION_SYSTEM,
+        SECTION_TONE,
+        SECTION_DOING_TASKS,
+        SECTION_ACTIONS,
+        SECTION_TOOLS,
+        SECTION_OUTPUT,
+        SECTION_HOW_YOU_WORK,
+    ];
+
+    // --- Configurable (Claude Code: dynamic/session-specific) ---
+    if features.verification {
+        sections.push(SECTION_VERIFICATION);
+    }
+    if features.suggestions {
+        sections.push(SECTION_SUGGESTIONS);
+    }
+    if features.skills {
+        sections.push(SECTION_SKILLS);
+    }
+    if features.insights {
+        sections.push(SECTION_INSIGHTS);
+    }
+
+    // --- Always-on tail ---
+    sections.push(SECTION_GIT_PROTOCOL);
+
+    sections.join("\n\n")
+}
 
 /// Base instructions for the model in a thread. Corresponds to the `instructions` field in the ResponsesAPI.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema, TS)]
@@ -352,7 +429,7 @@ pub struct BaseInstructions {
 impl Default for BaseInstructions {
     fn default() -> Self {
         Self {
-            text: BASE_INSTRUCTIONS_DEFAULT.to_string(),
+            text: assemble_base_instructions(&PromptFeatures::default()),
         }
     }
 }
