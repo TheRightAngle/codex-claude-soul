@@ -340,9 +340,6 @@ pub enum ResponseItem {
     Other,
 }
 
-// Legacy monolithic prompt — kept for backwards compatibility.
-pub const BASE_INSTRUCTIONS_DEFAULT: &str = include_str!("prompts/base_instructions/default.md");
-
 // --- Modular prompt sections (mirrors Claude Code's function-per-section architecture) ---
 
 // Always-on sections (like Claude Code's static cacheable half):
