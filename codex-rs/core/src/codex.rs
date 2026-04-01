@@ -2162,6 +2162,18 @@ impl Session {
         }
     }
 
+    /// Returns the current thread name, or None if not set.
+    pub(crate) async fn get_thread_name(&self) -> Option<String> {
+        let state = self.state.lock().await;
+        state.session_configuration.thread_name.clone()
+    }
+
+    /// Sets the thread name silently (used for auto-title generation).
+    /// Delegates to handlers::set_thread_name which handles persistence and events.
+    pub(crate) async fn auto_set_thread_name(self: &Arc<Self>, sub_id: String, name: String) {
+        handlers::set_thread_name(self, sub_id, name).await;
+    }
+
     // Merges connector IDs into the session-level explicit connector selection.
     pub(crate) async fn merge_connector_selection(
         &self,

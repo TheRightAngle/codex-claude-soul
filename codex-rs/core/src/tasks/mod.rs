@@ -448,6 +448,17 @@ impl Session {
                 &[("token_type", "reasoning_output"), tmp_mem],
             );
         }
+        // Auto-generate session title after first turn if no name is set.
+        // Mirrors Claude Code's agent-prompt-coding-session-title-generator.
+        if let Some(ref msg) = last_agent_message {
+            if self.get_thread_name().await.is_none() && !msg.trim().is_empty() {
+                if let Some(title) = derive_session_title(msg) {
+                    let sub_id = format!("{}-auto-title", turn_context.sub_id);
+                    self.auto_set_thread_name(sub_id, title).await;
+                }
+            }
+        }
+
         let event = EventMsg::TurnComplete(TurnCompleteEvent {
             turn_id: turn_context.sub_id.clone(),
             last_agent_message,
@@ -531,6 +542,56 @@ impl Session {
         });
         self.send_event(task.turn_context.as_ref(), event).await;
     }
+}
+
+/// Derives a concise session title (3-7 words, sentence case) from the first
+/// agent response message. Mirrors Claude Code's session title generator.
+///
+/// Returns None if the message is too short or doesn't contain meaningful content.
+fn derive_session_title(message: &str) -> Option<String> {
+    // Strip markdown formatting
+    let clean = message
+        .lines()
+        .find(|line| {
+            let trimmed = line.trim();
+            !trimmed.is_empty()
+                && !trimmed.starts_with('#')
+                && !trimmed.starts_with("```")
+                && !trimmed.starts_with("---")
+                && !trimmed.starts_with('>')
+                && !trimmed.starts_with("**")
+        })?
+        .trim();
+
+    // Take first sentence (up to period, exclamation, or question mark)
+    let sentence = clean
+        .split_once(". ")
+        .map(|(s, _)| s)
+        .or_else(|| clean.split_once(".\n").map(|(s, _)| s))
+        .unwrap_or(clean);
+
+    // Take first 7 words
+    let words: Vec<&str> = sentence.split_whitespace().take(7).collect();
+    if words.len() < 2 {
+        return None;
+    }
+
+    let title = words.join(" ");
+    // Ensure sentence case (first char uppercase, rest as-is)
+    let mut chars = title.chars();
+    let title = match chars.next() {
+        Some(c) => c.to_uppercase().to_string() + chars.as_str(),
+        None => return None,
+    };
+
+    // Strip trailing punctuation
+    let title = title.trim_end_matches(|c: char| c == '.' || c == ',' || c == ':').to_string();
+
+    if title.len() < 5 {
+        return None;
+    }
+
+    Some(title)
 }
 
 #[cfg(test)]
