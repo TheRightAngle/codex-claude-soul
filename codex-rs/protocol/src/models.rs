@@ -357,10 +357,9 @@ const SECTION_GIT_PROTOCOL: &str = include_str!("prompts/sections/git_protocol.m
 const SECTION_VERIFICATION: &str = include_str!("prompts/sections/verification.md");
 const SECTION_SUGGESTIONS: &str = include_str!("prompts/sections/suggestions.md");
 const SECTION_SKILLS: &str = include_str!("prompts/sections/skills.md");
-const SECTION_MEMORY: &str = include_str!("prompts/sections/memory.md");
-const SECTION_DREAM: &str = include_str!("prompts/sections/dream.md");
 const SECTION_ADVISOR: &str = include_str!("prompts/sections/advisor.md");
 const SECTION_WORKTREE: &str = include_str!("prompts/sections/worktree.md");
+// Memory/dream handled natively by Feature::MemoryTool (core/src/memories/)
 
 const SECTION_COMPACTION: &str = include_str!("prompts/sections/compaction.md");
 const SECTION_SIMPLIFY: &str = include_str!("prompts/sections/simplify.md");
@@ -379,14 +378,11 @@ pub struct PromptFeatures {
     pub verification: bool,
     pub suggestions: bool,
     pub skills: bool,
-    pub memory: bool,
-    pub dream: bool,
     pub advisor: bool,
     pub worktree: bool,
     pub stuck: bool,
-    // compaction, simplify, session_titles: NOT in base instructions.
-    // They exist as section files for use by /compact, /simplify, and
-    // the session title generator — injected only when invoked, not every turn.
+    // memory/dream: handled natively by Feature::MemoryTool (core/src/memories/)
+    // compaction/simplify/session_titles: injected only when invoked, not every turn
     // User-togglable (Experimental in Feature system)
     pub insights: bool,
 }
@@ -397,8 +393,6 @@ impl Default for PromptFeatures {
             verification: true,
             suggestions: true,
             skills: true,
-            memory: true,
-            dream: true,
             advisor: true,
             worktree: true,
             stuck: true,
@@ -433,12 +427,10 @@ pub fn assemble_base_instructions(features: &PromptFeatures) -> String {
     if features.skills {
         sections.push(SECTION_SKILLS);
     }
-    if features.memory {
-        sections.push(SECTION_MEMORY);
-    }
-    if features.dream {
-        sections.push(SECTION_DREAM);
-    }
+    // Memory and dream are handled by Codex's native memory system
+    // (core/src/memories/) which is now enabled via Feature::MemoryTool.
+    // The memory.md and dream.md section files are kept as reference
+    // but not assembled — the native system injects its own instructions.
     if features.advisor {
         sections.push(SECTION_ADVISOR);
     }

@@ -194,14 +194,11 @@ pub enum Feature {
     PromptSkills,
     /// Include educational insight blocks instructions in the system prompt.
     PromptInsights,
-    /// Include persistent cross-session memory instructions in the system prompt.
-    PromptMemory,
-    /// Include memory consolidation (dream) instructions in the system prompt.
-    PromptDream,
     /// Include strategic review (advisor) instructions in the system prompt.
     PromptAdvisor,
     /// Include git worktree instructions in the system prompt.
     PromptWorktree,
+    // Memory/dream: use Feature::MemoryTool (native system, now enabled by default)
 }
 
 impl Feature {
@@ -620,8 +617,8 @@ pub const FEATURES: &[FeatureSpec] = &[
     FeatureSpec {
         id: Feature::CodexGitCommit,
         key: "codex_git_commit",
-        stage: Stage::UnderDevelopment,
-        default_enabled: false,
+        stage: Stage::Stable,
+        default_enabled: true,
     },
     FeatureSpec {
         id: Feature::RuntimeMetrics,
@@ -644,8 +641,8 @@ pub const FEATURES: &[FeatureSpec] = &[
     FeatureSpec {
         id: Feature::MemoryTool,
         key: "memories",
-        stage: Stage::UnderDevelopment,
-        default_enabled: false,
+        stage: Stage::Stable,
+        default_enabled: true,
     },
     FeatureSpec {
         id: Feature::ChildAgentsMd,
@@ -674,8 +671,8 @@ pub const FEATURES: &[FeatureSpec] = &[
     FeatureSpec {
         id: Feature::CodexHooks,
         key: "codex_hooks",
-        stage: Stage::UnderDevelopment,
-        default_enabled: false,
+        stage: Stage::Stable,
+        default_enabled: true,
     },
     FeatureSpec {
         id: Feature::RequestPermissionsTool,
@@ -899,18 +896,7 @@ pub const FEATURES: &[FeatureSpec] = &[
         stage: Stage::Stable,
         default_enabled: true,
     },
-    FeatureSpec {
-        id: Feature::PromptMemory,
-        key: "prompt_memory",
-        stage: Stage::Stable,
-        default_enabled: true,
-    },
-    FeatureSpec {
-        id: Feature::PromptDream,
-        key: "prompt_dream",
-        stage: Stage::Stable,
-        default_enabled: true,
-    },
+    // Memory/dream: handled natively by Feature::MemoryTool (now enabled by default)
     FeatureSpec {
         id: Feature::PromptAdvisor,
         key: "prompt_advisor",
