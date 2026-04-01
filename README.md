@@ -1,6 +1,6 @@
 # Codex Claude Soul Edition
 
-A fork of [OpenAI's Codex CLI](https://github.com/openai/codex) with Claude Code's personality, prompt architecture, and TUI polish transplanted into it. The runtime, sandbox, and tool execution are untouched stock Codex. Everything that changed is the soul — how it thinks, talks, and presents itself.
+A fork of [OpenAI's Codex CLI](https://github.com/openai/codex) with Claude Code's personality, prompt architecture, and TUI polish transplanted into it. The runtime, sandbox, and tool execution are untouched stock Codex. Everything that changed is the soul -- how it thinks, talks, and presents itself.
 
 ## Why This Exists
 
@@ -35,8 +35,8 @@ Claude Code assembles its system prompt from ~20 independent function-per-sectio
 | `compaction.md` | Context handoff format | Invoked-only (/compact) |
 | `simplify.md` | Code review dimensions | Invoked-only (/simplify) |
 | `session_titles.md` | Title generation | Invoked-only (system) |
-| `memory.md` | Persistent memory | Reference (native system) |
-| `dream.md` | Memory consolidation | Reference (native system) |
+| `memory.md` | Persistent memory | Reference only (feature DISABLED) |
+| `dream.md` | Memory consolidation | Reference only (feature DISABLED) |
 
 **Assembler**: `assemble_base_instructions()` in `codex-rs/protocol/src/models.rs` concatenates sections based on `PromptFeatures`. Feature flags in `codex-rs/features/src/lib.rs` control which togglable sections are included.
 
@@ -53,31 +53,66 @@ Claude Code assembles its system prompt from ~20 independent function-per-sectio
 | Heavy chevron | `tui/src/chatwidget.rs` | `❯` prompt replacing `›` |
 | Slash commands | `tui/src/slash_command.rs` | All descriptions rewritten |
 | Tooltips | `tui/tooltips.txt` | Rewritten for Codex identity |
-| Placeholders | `tui/src/chatwidget.rs` | 8-entry PLACEHOLDERS array |
+| Static placeholders | `tui/src/chatwidget.rs` | 8-entry PLACEHOLDERS array (random on session start) |
+| Dynamic placeholder | `tui/src/chatwidget.rs` | Contextual suggestion after each turn (see below) |
 | Approval banner | `tui/src/bottom_pane/pending_thread_approvals.rs` | "Codex needs your approval" |
 | Auto-session titles | `core/src/tasks/mod.rs` | `derive_session_title()` on first turn |
 
+### Dynamic Composer Placeholder (Prompt Suggestions)
+
+Claude Code shows "prompt suggestion" chips after each agent turn. This fork achieves the same effect through the existing dimmed placeholder text in the composer, which updates dynamically after each turn.
+
+After the agent responds, `extract_next_step_suggestion()` in `chatwidget.rs` scans the last 5 lines of the response for:
+- **"Want me to X?" / "Should I X?" / "Shall I X?"** patterns -- extracts the action as a short phrase (3-60 chars)
+- **Backtick-wrapped commands** like `` `npm test` `` or `` `/review` `` -- extracts the command (2-40 chars)
+
+If a match is found, it calls `set_composer_placeholder()` on `BottomPane` (in `bottom_pane/mod.rs`), which delegates to `ChatComposer::set_placeholder_text()` in `bottom_pane/chat_composer.rs`. The placeholder appears as dimmed text where the user types, guiding them toward the natural next action.
+
+Not separate chips like Claude Code, but same functional effect using the existing TUI infrastructure.
+
 ### Built-in Skills
 
-- `codex-rs/skills/src/assets/samples/simplify/SKILL.md` — three-dimension code review (reuse, quality, efficiency)
-- `codex-rs/skills/src/assets/samples/stuck/SKILL.md` — 5-step protocol to break out of debugging loops
+- `codex-rs/skills/src/assets/samples/simplify/SKILL.md` -- three-dimension code review (reuse, quality, efficiency)
+- `codex-rs/skills/src/assets/samples/stuck/SKILL.md` -- 5-step protocol to break out of debugging loops
 
 ### Improved Prompts
 
-- **Compact**: `codex-rs/core/templates/compact/prompt.md` — structured 5-section handoff (Task Overview, Current State, Important Discoveries, Next Steps, Context to Preserve) with no-tool-call guardrail
-- **Init**: `codex-rs/tui/prompt_for_init_command.md` — opinionated senior-dev tone, 150-300 words target
+- **Compact**: `codex-rs/core/templates/compact/prompt.md` -- structured 5-section handoff (Task Overview, Current State, Important Discoveries, Next Steps, Context to Preserve) with no-tool-call guardrail
+- **Init**: `codex-rs/tui/prompt_for_init_command.md` -- opinionated senior-dev tone, 150-300 words target
 - **Double-print prevention**: `how_you_work.md` section clarifies preamble content should not be repeated in final answer
 
-### Native Features Enabled
+### MCP Server Instructions
 
-- **`Feature::CodexHooks`** — hooks.json lifecycle hooks (Stable, default on)
-- **`Feature::CodexGitCommit`** — commit attribution guidance (Stable, default on)
-- **`Feature::ChildAgentsMd`** — subagent documentation loading (Stable, default on)
+Codex handles MCP server instructions natively through its plugin injection system. `build_plugin_injections()` in `codex-rs/core/src/plugins/injection.rs` assembles `PluginCapabilitySummary` data and MCP tool info into `ResponseItem` injections included in the conversation. This works out of the box -- no custom implementation was needed.
 
-### Native Features Disabled
+## Feature Status
 
-- **`Feature::MemoryTool`** — `Stage::UnderDevelopment`, `default_enabled: false`. Spawns background agents with a 1-hour lease that block the session on first run when no history exists. The section files (`memory.md`, `dream.md`) are kept as reference.
-- **`Feature::GhostCommit`** — `default_enabled: false`. Background snapshot/undo tasks. Disabled for safety — making silent commits can surprise users.
+### Working
+
+| Feature | Flag | Stage | default_enabled |
+|---------|------|-------|-----------------|
+| Hooks lifecycle | `Feature::CodexHooks` | Stable | `true` |
+| Commit attribution | `Feature::CodexGitCommit` | Stable | `true` |
+| Subagent AGENTS.md | `Feature::ChildAgentsMd` | Stable | `true` |
+| Prompt: Verification | `Feature::PromptVerification` | Stable | `true` |
+| Prompt: Suggestions | `Feature::PromptSuggestions` | Stable | `true` |
+| Prompt: Skills | `Feature::PromptSkills` | Stable | `true` |
+| Prompt: Advisor | `Feature::PromptAdvisor` | Stable | `true` |
+| Prompt: Worktree | `Feature::PromptWorktree` | Stable | `true` |
+| Prompt: Insights | `Feature::PromptInsights` | Experimental | `false` |
+| Dynamic placeholder | (custom code in chatwidget.rs) | -- | -- |
+| Static placeholders | (PLACEHOLDERS array) | -- | -- |
+| Spinner verbs | (custom code in spinner_verbs.rs) | -- | -- |
+| Diamond indicators | (custom code in exec_cell/render.rs) | -- | -- |
+| Auto-session titles | (derive_session_title in tasks/mod.rs) | -- | -- |
+| MCP plugin injection | (build_plugin_injections, native) | -- | -- |
+
+### Disabled
+
+| Feature | Flag | Stage | default_enabled | Why |
+|---------|------|-------|-----------------|-----|
+| MemoryTool | `Feature::MemoryTool` | UnderDevelopment | `false` | Spawns background agents with 1-hour lease that block the session on first run with no rollout history. Section files `memory.md` and `dream.md` kept as reference only. |
+| GhostCommit (undo) | `Feature::GhostCommit` | Stable | `false` | Creates silent background commits for undo support. Disabled for safety -- surprising git behavior. |
 
 ## Build
 
@@ -107,7 +142,9 @@ sudo apt-get install -y pkg-config libcap-dev
 
 ### Snapshot Tests
 
-UI changes require `insta` snapshot coverage. CI runs with `INSTA_UPDATE=always` to auto-accept snapshots. A trailing-comma bug in upstream's brew cask JSON test was fixed as part of this work.
+UI changes require `insta` snapshot coverage. CI runs with `INSTA_UPDATE=always` to auto-accept snapshots.
+
+A trailing-comma bug in upstream's brew cask JSON test (`extract_version_from_brew_api_json` in `codex-rs/tui/src/updates.rs`) was fixed as part of this work -- the snapshot serialization could produce trailing commas that fail `serde_json` parsing.
 
 ```sh
 INSTA_UPDATE=always cargo test -p codex-tui
@@ -128,12 +165,14 @@ Or grab a pre-built artifact from the [GitHub Actions workflow](.github/workflow
 
 ## CI/CD
 
-`.github/workflows/build-claude-soul.yml`:
+`.github/workflows/build-claude-soul.yml` is the only active custom workflow for this fork:
 - Triggers on push to `claude-code-personality` and `main`, PRs to `main`, and manual dispatch
 - Builds release binaries for three targets: `x86_64-unknown-linux-gnu`, `aarch64-apple-darwin`, `x86_64-pc-windows-msvc`
 - Runs `codex-tui` tests with `INSTA_UPDATE=always`
 - Uploads binary artifacts with 30-day retention
 - Caches cargo registry and build artifacts
+
+All upstream OpenAI workflows (`rust-ci.yml`, `ci.yml`, `bazel.yml`, `rust-release.yml`, etc.) remain in `.github/workflows/` but are not ours. They trigger on their own branch/PR patterns and do not fire for this fork's work.
 
 ## File Map
 
@@ -160,8 +199,8 @@ codex-rs/protocol/src/prompts/sections/
   compaction.md          # Context compaction handoff
   simplify.md            # Code review dimensions
   session_titles.md      # Title generation
-  memory.md              # Persistent memory reference
-  dream.md               # Memory consolidation reference
+  memory.md              # Persistent memory reference (DISABLED)
+  dream.md               # Memory consolidation reference (DISABLED)
 
 codex-rs/protocol/src/
   models.rs              # assemble_base_instructions(), PromptFeatures struct
@@ -172,16 +211,20 @@ codex-rs/features/src/
 codex-rs/core/
   src/codex.rs           # Session init wiring (line ~575)
   src/tasks/mod.rs       # derive_session_title() auto-naming
+  src/plugins/injection.rs  # build_plugin_injections() for MCP server instructions
   templates/compact/prompt.md  # Improved compaction prompt
 
 codex-rs/tui/
   src/spinner_verbs.rs   # 171 whimsical spinner verbs
   src/slash_command.rs   # Rewritten command descriptions
-  src/chatwidget.rs      # PLACEHOLDERS, heavy chevron prompt
+  src/chatwidget.rs      # PLACEHOLDERS, heavy chevron, extract_next_step_suggestion()
   src/exec_cell/render.rs # Diamond status indicators
   src/markdown_render.rs # Blockquote prefix
   src/markdown_stream.rs # Blockquote rendering
+  src/bottom_pane/mod.rs # set_composer_placeholder() wiring
+  src/bottom_pane/chat_composer.rs  # set_placeholder_text() implementation
   src/bottom_pane/pending_thread_approvals.rs  # Approval banner text
+  src/updates.rs         # Brew cask JSON trailing-comma fix
   tooltips.txt           # Rewritten tooltips
   prompt_for_init_command.md  # Init prompt (senior-dev tone)
 
@@ -190,7 +233,7 @@ codex-rs/skills/src/assets/samples/
   stuck/SKILL.md         # Debugging loop escape protocol
 
 .github/workflows/
-  build-claude-soul.yml  # CI: Linux, macOS, Windows builds
+  build-claude-soul.yml  # CI: Linux, macOS, Windows builds (only active custom workflow)
 ```
 
 ## License
