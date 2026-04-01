@@ -568,7 +568,7 @@ impl Codex {
         // 2. conversation history => session_meta.base_instructions
         // 3. Modular prompt assembly (Claude Soul Edition)
         // 4. base_instructions for current model (fallback)
-        let model_info = models_manager.get_model_info(model.as_str(), &config).await;
+        let _model_info = models_manager.get_model_info(model.as_str(), &config).await;
         let base_instructions = config
             .base_instructions
             .clone()
