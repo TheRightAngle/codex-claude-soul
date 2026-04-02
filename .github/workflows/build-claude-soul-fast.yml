@@ -19,17 +19,24 @@ env:
 jobs:
   build:
     name: Build & test (Linux)
-    runs-on: ubuntu-latest-16-cores
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: codex-rs
-    env:
-      RUSTC_WRAPPER: sccache
-      SCCACHE_GHA_ENABLED: true
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - uses: mozilla-actions/sccache-action@v0.0.7
+
+      - name: Setup sccache
+        id: sccache
+        uses: mozilla-actions/sccache-action@v0.0.7
+        continue-on-error: true
+
+      - name: Enable sccache (if available)
+        if: steps.sccache.outcome == 'success'
+        run: |
+          echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+          echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
 
       - name: Install build dependencies
         run: |
