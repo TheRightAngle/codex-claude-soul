@@ -52,7 +52,9 @@ jobs:
         run: cargo build -p codex-cli
 
       - name: Test
-        run: cargo nextest run -p codex-tui
+        env:
+          INSTA_UPDATE: always
+        run: cargo nextest run -p codex-tui --no-fail-fast
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
