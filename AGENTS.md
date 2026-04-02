@@ -238,6 +238,15 @@ Defined in `chatwidget.rs` at line ~11121. Wired through `bottom_pane/mod.rs:325
 
 **Not ported from CC (5 -- platform-specific):** status-line-setup (CC PS1 conversion), /schedule (CC remote triggers), dream-memory-consolidation (memory disabled), memory-file-selector (memory disabled), session-memory-updates (memory disabled)
 
+### Registration
+
+All 29 TOML configs are registered in `codex-rs/core/src/agent/role.rs`:
+
+- `built_in::configs()` — 31 entries in a `BTreeMap<String, AgentRoleConfig>` (29 TOML-backed agents + `default` and `worker` which are description-only with no config_file). Each entry provides a `description` (shown in the spawn tool spec) and a `config_file` path. User-spawnable agents have rich multi-line descriptions; system-internal agents use concise `"System agent: ..."` descriptions.
+- `built_in::config_file_contents()` — 29 `include_str!()` declarations that embed the TOML files into the binary at compile time, with a `match` statement resolving each filename to its content.
+
+`resolve_role_config()` checks user-defined roles first (from `config.agent_roles`), then falls back to `built_in::configs()`. This means user-defined roles with the same name override built-in roles.
+
 ## MCP Server Instructions
 
 Codex handles MCP server instructions natively through its plugin injection system. `build_plugin_injections()` in `codex-rs/core/src/plugins/injection.rs` assembles plugin capability summaries and tool info into `ResponseItem` injections that are included in the conversation context. No custom work was needed here -- it works out of the box.
@@ -249,6 +258,7 @@ Codex handles MCP server instructions natively through its plugin injection syst
 | Hooks | `Feature::CodexHooks` | Stable | `true` | Working |
 | Git commit guidance | `Feature::CodexGitCommit` | Stable | `true` | Working |
 | Child agents AGENTS.md | `Feature::ChildAgentsMd` | Stable | `true` | Working |
+| Built-in agent roles (29) | `role.rs` (`configs`, `config_file_contents`) | Stable | — | Working |
 | Prompt: Verification | `Feature::PromptVerification` | Stable | `true` | Working |
 | Prompt: Suggestions | `Feature::PromptSuggestions` | Stable | `true` | Working |
 | Prompt: Skills | `Feature::PromptSkills` | Stable | `true` | Working |
@@ -294,6 +304,7 @@ Follow the upstream AGENTS.md conventions (they are merged into this file's scop
 | Prompt sections (23) | `codex-rs/protocol/src/prompts/sections/*.md` |
 | System reminders (37) | `codex-rs/protocol/src/prompts/reminders/*.md` |
 | Agent builtins (29) | `codex-rs/core/src/agent/builtins/*.toml` |
+| Agent role registry (31) | `codex-rs/core/src/agent/role.rs` (`configs()`, `config_file_contents()`) |
 | Section assembler | `codex-rs/protocol/src/models.rs` (`assemble_base_instructions`, `pub mod reminders`) |
 | Feature flags | `codex-rs/features/src/lib.rs` |
 | Session init wiring | `codex-rs/core/src/codex.rs:575` |

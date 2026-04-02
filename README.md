@@ -42,11 +42,11 @@ Claude Code assembles its system prompt from ~20 independent function-per-sectio
 
 **37 system reminder templates** in `codex-rs/protocol/src/prompts/reminders/` — contextual developer messages injected at runtime, adapted from Claude Code's full set. Covers: plan mode lifecycle (7 variants including 5-phase, iterative, subagent, ultraplan), file state warnings, hook lifecycle, task tracking nudges, token/budget alerts, team coordination, IDE integration, security, and more.
 
-**29 built-in agent roles** in `codex-rs/core/src/agent/builtins/` — TOML configs adapted from Claude Code's 34 agent prompt definitions. Includes: explorer, planner, general-purpose, worker-fork, verifier (adversarial with type-specific strategies), security monitor (24 BLOCK rules), security review, auto-mode-reviewer, quick-commit, quick-PR, PR-comments, review-PR, batch-orchestrator, session-search, title/branch generators, conversation/recent summarizers, webfetch-summarizer, bash-description/prefix-detection, hook-evaluator, agent-hook, codex-guide, agent-architect, AGENTS.md-creation, and suggestion-generator.
+**29 built-in agent roles** in `codex-rs/core/src/agent/builtins/` — TOML configs adapted from Claude Code's 34 agent prompt definitions. Includes: explorer, planner, general-purpose, worker-fork, verifier (adversarial with type-specific strategies), security monitor (24 BLOCK rules), security review, auto-mode-reviewer, quick-commit, quick-PR, PR-comments, review-PR, batch-orchestrator, session-search, title/branch generators, conversation/recent summarizers, webfetch-summarizer, bash-description/prefix-detection, hook-evaluator, agent-hook, codex-guide, agent-architect, AGENTS.md-creation, and suggestion-generator. All 29 are registered in `codex-rs/core/src/agent/role.rs` via `include_str!()` (compile-time embedding) and a `BTreeMap` role registry (31 total entries: 29 TOML-backed + `default` and `worker` description-only roles).
 
 **Assembler**: `assemble_base_instructions()` in `codex-rs/protocol/src/models.rs` concatenates sections based on `PromptFeatures`. The `reminders` module exposes all 37 templates as compile-time constants. Feature flags in `codex-rs/features/src/lib.rs` control togglable sections. Runtime state flags (`auto_mode`, `plan_mode`) are set from approval policy and collaboration mode.
 
-**Wiring**: Called at session init in `codex-rs/core/src/codex.rs:575`. Auto mode is activated when `AskForApproval::Never`.
+**Wiring**: Called at session init in `codex-rs/core/src/codex.rs:575`. Auto mode is activated when `AskForApproval::Never`. Agent roles are resolved via `resolve_role_config()` in `role.rs`, which checks user-defined roles first, then falls back to the built-in registry.
 
 ### TUI Polish
 
@@ -121,6 +121,7 @@ Ant-only features included that Claude Code's public build omits: comment writin
 | Diamond indicators | (custom code in exec_cell/render.rs) | — | — |
 | Auto-session titles | (derive_session_title in tasks/mod.rs) | — | — |
 | MCP plugin injection | (build_plugin_injections, native) | — | — |
+| Built-in agent roles (29) | (role.rs: configs + config_file_contents) | — | — |
 
 ### Disabled
 
@@ -265,6 +266,7 @@ codex-rs/core/
   src/codex.rs                  # Session init wiring, auto_mode detection
   src/tasks/mod.rs              # derive_session_title()
   src/plugins/injection.rs      # MCP plugin injection
+  src/agent/role.rs             # Agent role registry: configs() + config_file_contents()
   src/agent/builtins/           # 29 agent role TOML configs (NEW)
     explorer.toml               # Codebase exploration (read-only)
     planner.toml                # Implementation planning (read-only)

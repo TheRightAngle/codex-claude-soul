@@ -345,62 +345,423 @@ mod built_in {
     /// Returns the cached built-in role declarations defined in this module.
     pub(super) fn configs() -> &'static BTreeMap<String, AgentRoleConfig> {
         static CONFIG: LazyLock<BTreeMap<String, AgentRoleConfig>> = LazyLock::new(|| {
+            /// Helper to build a config_file PathBuf from a TOML filename.
+            fn toml_path(name: &str) -> Option<std::path::PathBuf> {
+                Some(name.to_string().parse().unwrap_or_default())
+            }
+
             BTreeMap::from([
+                // ── Core agents ──────────────────────────────────────────
                 (
                     DEFAULT_ROLE_NAME.to_string(),
                     AgentRoleConfig {
                         description: Some("Default agent.".to_string()),
                         config_file: None,
                         nickname_candidates: None,
-                    }
+                    },
                 ),
                 (
                     "explorer".to_string(),
                     AgentRoleConfig {
-                        description: Some(r#"Use `explorer` for specific codebase questions.
+                        description: Some(
+                            r#"Use `explorer` for specific codebase questions.
 Explorers are fast and authoritative.
 They must be used to ask specific, well-scoped questions on the codebase.
 Rules:
 - In order to avoid redundant work, you should avoid exploring the same problem that explorers have already covered. Typically, you should trust the explorer results without additional verification. You are still allowed to inspect the code yourself to gain the needed context!
 - You are encouraged to spawn up multiple explorers in parallel when you have multiple distinct questions to ask about the codebase that can be answered independently. This allows you to get more information faster without waiting for one question to finish before asking the next. While waiting for the explorer results, you can continue working on other local tasks that do not depend on those results. This parallelism is a key advantage of delegation, so use it whenever you have multiple questions to ask.
-- Reuse existing explorers for related questions."#.to_string()),
-                        config_file: Some("explorer.toml".to_string().parse().unwrap_or_default()),
+- Reuse existing explorers for related questions."#
+                                .to_string(),
+                        ),
+                        config_file: toml_path("explorer.toml"),
                         nickname_candidates: None,
-                    }
+                    },
+                ),
+                (
+                    "planner".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            r#"Use `planner` for designing implementation approaches.
+Planners are read-only and produce actionable plans with file paths, specific changes, and verification steps.
+Rules:
+- Plans should be concise — hard limit of 40 lines.
+- Reference specific files and line numbers.
+- List reusable existing functions and patterns.
+- End with a verification strategy."#
+                                .to_string(),
+                        ),
+                        config_file: toml_path("planner.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "general_purpose".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            r#"Use `general_purpose` for complex, multi-step tasks.
+General-purpose agents are autonomous and can search, read, write, and execute.
+Rules:
+- Keeps going until the task is fully resolved.
+- Prefers editing existing files over creating new ones.
+- Uses absolute file paths."#
+                                .to_string(),
+                        ),
+                        config_file: toml_path("general_purpose.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "researcher".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            r#"Use `researcher` for targeted research questions.
+Researchers are efficient and evidence-based.
+Rules:
+- Focused on specific questions — no tangential exploration.
+- Reports what was found AND what was not found.
+- Cross-references multiple sources."#
+                                .to_string(),
+                        ),
+                        config_file: toml_path("researcher.toml"),
+                        nickname_candidates: None,
+                    },
                 ),
                 (
                     "worker".to_string(),
                     AgentRoleConfig {
-                        description: Some(r#"Use for execution and production work.
+                        description: Some(
+                            r#"Use for execution and production work.
 Typical tasks:
 - Implement part of a feature
 - Fix tests or bugs
 - Split large refactors into independent chunks
 Rules:
 - Explicitly assign **ownership** of the task (files / responsibility). When the subtask involves code changes, you should clearly specify which files or modules the worker is responsible for. This helps avoid merge conflicts and ensures accountability. For example, you can say "Worker 1 is responsible for updating the authentication module, while Worker 2 will handle the database layer." By defining clear ownership, you can delegate more effectively and reduce coordination overhead.
-- Always tell workers they are **not alone in the codebase**, and they should not revert the edits made by others, and they should adjust their implementation to accommodate the changes made by others. This is important because there may be multiple workers making changes in parallel, and they need to be aware of each other's work to avoid conflicts and ensure a cohesive final product."#.to_string()),
+- Always tell workers they are **not alone in the codebase**, and they should not revert the edits made by others, and they should adjust their implementation to accommodate the changes made by others. This is important because there may be multiple workers making changes in parallel, and they need to be aware of each other's work to avoid conflicts and ensure a cohesive final product."#
+                                .to_string(),
+                        ),
                         config_file: None,
                         nickname_candidates: None,
-                    }
+                    },
                 ),
-                // Awaiter is temp removed
-//                 (
-//                     "awaiter".to_string(),
-//                     AgentRoleConfig {
-//                         description: Some(r#"Use an `awaiter` agent EVERY TIME you must run a command that will take some very long time.
-// This includes, but not only:
-// * testing
-// * monitoring of a long running process
-// * explicit ask to wait for something
-//
-// Rules:
-// - When an awaiter is running, you can work on something else. If you need to wait for its completion, use the largest possible timeout.
-// - Be patient with the `awaiter`.
-// - Do not use an awaiter for every compilation/test if it won't take time. Only use if for long running commands.
-// - Close the awaiter when you're done with it."#.to_string()),
-//                         config_file: Some("awaiter.toml".to_string().parse().unwrap_or_default()),
-//                     }
-//                 )
+                (
+                    "worker_fork".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            r#"Use `worker_fork` for isolated execution of specific directives.
+Worker forks execute silently and commit before reporting.
+Rules:
+- Does NOT spawn sub-agents — works directly with tools.
+- Stays within assigned scope.
+- Reports results in under 500 words."#
+                                .to_string(),
+                        ),
+                        config_file: toml_path("worker_fork.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "awaiter".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            r#"Use `awaiter` EVERY TIME you must run a command that will take a very long time.
+This includes testing, monitoring of a long running process, or an explicit ask to wait.
+Rules:
+- When an awaiter is running, you can work on something else. If you need to wait for its completion, use the largest possible timeout.
+- Be patient with the `awaiter`.
+- Do not use an awaiter for every compilation/test if it won't take time. Only use for long running commands.
+- Close the awaiter when you're done with it."#
+                                .to_string(),
+                        ),
+                        config_file: toml_path("awaiter.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                // ── Verification & security ──────────────────────────────
+                (
+                    "verifier".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            r#"Use `verifier` for independent verification that work is correct and complete.
+Verifiers are adversarial — they actively try to find failures.
+Rules:
+- Must run actual commands, not assume correctness.
+- Uses type-specific verification strategies (frontend, backend, CLI, etc.).
+- Reports PASS / FAIL / PARTIAL with evidence."#
+                                .to_string(),
+                        ),
+                        config_file: toml_path("verifier.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "security_monitor".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            "System agent: reviews autonomous actions for security risks. \
+                             Classifies actions as ALLOWED / BLOCKED / NEEDS_REVIEW \
+                             against 24 block rules and 6 allow exceptions."
+                                .to_string(),
+                        ),
+                        config_file: toml_path("security_monitor.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "security_review".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            r#"Use `security_review` for code security audits.
+Analyzes changes for exploitable vulnerabilities across OWASP categories.
+Reports severity, confidence, exploit scenario, and fix for each finding."#
+                                .to_string(),
+                        ),
+                        config_file: toml_path("security_review.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "auto_mode_reviewer".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            "System agent: reviews auto mode classifier rules for clarity, \
+                             completeness, conflicts, and actionability."
+                                .to_string(),
+                        ),
+                        config_file: toml_path("auto_mode_reviewer.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                // ── Git & PR ─────────────────────────────────────────────
+                (
+                    "quick_commit".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            "Use `quick_commit` for single commit creation. \
+                             Analyzes changes, drafts commit message, stages files by name, \
+                             and creates the commit following git safety protocol."
+                                .to_string(),
+                        ),
+                        config_file: toml_path("quick_commit.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "quick_pr".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            "Use `quick_pr` for creating commits and pull requests. \
+                             Commits changes, pushes, and creates a PR with summary and test plan."
+                                .to_string(),
+                        ),
+                        config_file: toml_path("quick_pr.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "pr_comments".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            "Use `pr_comments` to fetch and display GitHub PR comments. \
+                             Shows inline and PR-level comments grouped by thread."
+                                .to_string(),
+                        ),
+                        config_file: toml_path("pr_comments.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "review_pr".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            r#"Use `review_pr` for code review of GitHub pull requests.
+Reviews correctness, conventions, performance, test coverage, and security.
+Reports issues with exact file/line, severity, and suggested fix."#
+                                .to_string(),
+                        ),
+                        config_file: toml_path("review_pr.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                // ── Session management ───────────────────────────────────
+                (
+                    "title_generator".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            "System agent: generates concise session titles (3-7 words, JSON)."
+                                .to_string(),
+                        ),
+                        config_file: toml_path("title_generator.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "title_branch_generator".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            "System agent: generates session title and git branch name (JSON)."
+                                .to_string(),
+                        ),
+                        config_file: toml_path("title_branch_generator.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "conversation_summarizer".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            "System agent: creates detailed 9-section conversation summaries."
+                                .to_string(),
+                        ),
+                        config_file: toml_path("conversation_summarizer.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "recent_summarizer".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            "System agent: summarizes recent conversation (post-compaction)."
+                                .to_string(),
+                        ),
+                        config_file: toml_path("recent_summarizer.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "session_search".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            "System agent: finds relevant sessions matching a user query."
+                                .to_string(),
+                        ),
+                        config_file: toml_path("session_search.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                // ── Content processing ───────────────────────────────────
+                (
+                    "webfetch_summarizer".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            "System agent: summarizes fetched web content with trust-level rules."
+                                .to_string(),
+                        ),
+                        config_file: toml_path("webfetch_summarizer.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "bash_description".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            "System agent: generates concise command descriptions in active voice."
+                                .to_string(),
+                        ),
+                        config_file: toml_path("bash_description.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "bash_prefix_detection".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            "System agent: extracts command prefix and detects injection."
+                                .to_string(),
+                        ),
+                        config_file: toml_path("bash_prefix_detection.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                // ── Infrastructure ───────────────────────────────────────
+                (
+                    "hook_evaluator".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            "System agent: evaluates hook conditions (JSON ok/not-ok output)."
+                                .to_string(),
+                        ),
+                        config_file: toml_path("hook_evaluator.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "agent_hook".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            "System agent: verifies stop conditions against conversation transcript."
+                                .to_string(),
+                        ),
+                        config_file: toml_path("agent_hook.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "batch_orchestrator".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            r#"Use `batch_orchestrator` for large, parallelizable changes.
+Decomposes work into 5-30 independent units, spawns workers in parallel, tracks progress.
+Rules:
+- Each unit must be independently committable.
+- Never spawn more than 30 workers.
+- Shows final summary with pass/fail counts."#
+                                .to_string(),
+                        ),
+                        config_file: toml_path("batch_orchestrator.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "codex_guide".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            r#"Use `codex_guide` for help with Codex CLI, Agent SDK, and API usage.
+Fetches official documentation and provides actionable guidance.
+Covers slash commands, settings, hooks, AGENTS.md conventions, SDK examples, and API usage."#
+                                .to_string(),
+                        ),
+                        config_file: toml_path("codex_guide.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                // ── Creation & setup ─────────────────────────────────────
+                (
+                    "agent_architect".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            "Use `agent_architect` to design custom agent configurations. \
+                             Translates requirements into JSON with identifier, whenToUse, \
+                             and systemPrompt."
+                                .to_string(),
+                        ),
+                        config_file: toml_path("agent_architect.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "agentsmd_creation".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            "Use `agentsmd_creation` to analyze a codebase and create AGENTS.md. \
+                             Discovers build/test/lint commands and documents architecture."
+                                .to_string(),
+                        ),
+                        config_file: toml_path("agentsmd_creation.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
+                (
+                    "suggestion_generator".to_string(),
+                    AgentRoleConfig {
+                        description: Some(
+                            "System agent: predicts user's natural next input (2-12 words)."
+                                .to_string(),
+                        ),
+                        config_file: toml_path("suggestion_generator.toml"),
+                        nickname_candidates: None,
+                    },
+                ),
             ])
         });
         &CONFIG
@@ -408,11 +769,81 @@ Rules:
 
     /// Resolves a built-in role `config_file` path to embedded content.
     pub(super) fn config_file_contents(path: &Path) -> Option<&'static str> {
+        // Core agents
         const EXPLORER: &str = include_str!("builtins/explorer.toml");
+        const PLANNER: &str = include_str!("builtins/planner.toml");
+        const GENERAL_PURPOSE: &str = include_str!("builtins/general_purpose.toml");
+        const RESEARCHER: &str = include_str!("builtins/researcher.toml");
+        const WORKER_FORK: &str = include_str!("builtins/worker_fork.toml");
         const AWAITER: &str = include_str!("builtins/awaiter.toml");
+        // Verification & security
+        const VERIFIER: &str = include_str!("builtins/verifier.toml");
+        const SECURITY_MONITOR: &str = include_str!("builtins/security_monitor.toml");
+        const SECURITY_REVIEW: &str = include_str!("builtins/security_review.toml");
+        const AUTO_MODE_REVIEWER: &str = include_str!("builtins/auto_mode_reviewer.toml");
+        // Git & PR
+        const QUICK_COMMIT: &str = include_str!("builtins/quick_commit.toml");
+        const QUICK_PR: &str = include_str!("builtins/quick_pr.toml");
+        const PR_COMMENTS: &str = include_str!("builtins/pr_comments.toml");
+        const REVIEW_PR: &str = include_str!("builtins/review_pr.toml");
+        // Session management
+        const TITLE_GENERATOR: &str = include_str!("builtins/title_generator.toml");
+        const TITLE_BRANCH_GENERATOR: &str = include_str!("builtins/title_branch_generator.toml");
+        const CONVERSATION_SUMMARIZER: &str =
+            include_str!("builtins/conversation_summarizer.toml");
+        const RECENT_SUMMARIZER: &str = include_str!("builtins/recent_summarizer.toml");
+        const SESSION_SEARCH: &str = include_str!("builtins/session_search.toml");
+        // Content processing
+        const WEBFETCH_SUMMARIZER: &str = include_str!("builtins/webfetch_summarizer.toml");
+        const BASH_DESCRIPTION: &str = include_str!("builtins/bash_description.toml");
+        const BASH_PREFIX_DETECTION: &str = include_str!("builtins/bash_prefix_detection.toml");
+        // Infrastructure
+        const HOOK_EVALUATOR: &str = include_str!("builtins/hook_evaluator.toml");
+        const AGENT_HOOK: &str = include_str!("builtins/agent_hook.toml");
+        const BATCH_ORCHESTRATOR: &str = include_str!("builtins/batch_orchestrator.toml");
+        const CODEX_GUIDE: &str = include_str!("builtins/codex_guide.toml");
+        // Creation & setup
+        const AGENT_ARCHITECT: &str = include_str!("builtins/agent_architect.toml");
+        const AGENTSMD_CREATION: &str = include_str!("builtins/agentsmd_creation.toml");
+        const SUGGESTION_GENERATOR: &str = include_str!("builtins/suggestion_generator.toml");
+
         match path.to_str()? {
+            // Core agents
             "explorer.toml" => Some(EXPLORER),
+            "planner.toml" => Some(PLANNER),
+            "general_purpose.toml" => Some(GENERAL_PURPOSE),
+            "researcher.toml" => Some(RESEARCHER),
+            "worker_fork.toml" => Some(WORKER_FORK),
             "awaiter.toml" => Some(AWAITER),
+            // Verification & security
+            "verifier.toml" => Some(VERIFIER),
+            "security_monitor.toml" => Some(SECURITY_MONITOR),
+            "security_review.toml" => Some(SECURITY_REVIEW),
+            "auto_mode_reviewer.toml" => Some(AUTO_MODE_REVIEWER),
+            // Git & PR
+            "quick_commit.toml" => Some(QUICK_COMMIT),
+            "quick_pr.toml" => Some(QUICK_PR),
+            "pr_comments.toml" => Some(PR_COMMENTS),
+            "review_pr.toml" => Some(REVIEW_PR),
+            // Session management
+            "title_generator.toml" => Some(TITLE_GENERATOR),
+            "title_branch_generator.toml" => Some(TITLE_BRANCH_GENERATOR),
+            "conversation_summarizer.toml" => Some(CONVERSATION_SUMMARIZER),
+            "recent_summarizer.toml" => Some(RECENT_SUMMARIZER),
+            "session_search.toml" => Some(SESSION_SEARCH),
+            // Content processing
+            "webfetch_summarizer.toml" => Some(WEBFETCH_SUMMARIZER),
+            "bash_description.toml" => Some(BASH_DESCRIPTION),
+            "bash_prefix_detection.toml" => Some(BASH_PREFIX_DETECTION),
+            // Infrastructure
+            "hook_evaluator.toml" => Some(HOOK_EVALUATOR),
+            "agent_hook.toml" => Some(AGENT_HOOK),
+            "batch_orchestrator.toml" => Some(BATCH_ORCHESTRATOR),
+            "codex_guide.toml" => Some(CODEX_GUIDE),
+            // Creation & setup
+            "agent_architect.toml" => Some(AGENT_ARCHITECT),
+            "agentsmd_creation.toml" => Some(AGENTSMD_CREATION),
+            "suggestion_generator.toml" => Some(SUGGESTION_GENERATOR),
             _ => None,
         }
     }
