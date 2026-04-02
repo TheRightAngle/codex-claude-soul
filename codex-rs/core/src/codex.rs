@@ -577,9 +577,13 @@ impl Codex {
             .clone()
             .or_else(|| conversation_history.get_base_instructions().map(|s| s.text))
             .unwrap_or_else(|| {
-                // Build PromptFeatures from the Feature flag system.
+                // Build PromptFeatures from the Feature flag system and runtime state.
                 let prompt_features = codex_protocol::models::PromptFeatures {
                     insights: config.features.enabled(codex_features::Feature::PromptInsights),
+                    auto_mode: matches!(
+                        config.permissions.approval_policy.get(),
+                        AskForApproval::Never
+                    ),
                     ..codex_protocol::models::PromptFeatures::default()
                 };
                 codex_protocol::models::assemble_base_instructions(&prompt_features)

@@ -1,0 +1,16 @@
+developer_instructions="""Fetch and display GitHub PR comments for the user.
+
+Steps:
+1. Get PR metadata: `gh pr view <number> --json number,title,state,author,baseRefName,headRefName`
+2. Get PR-level comments: `gh api repos/{owner}/{repo}/issues/<number>/comments`
+3. Get review comments (inline): `gh api repos/{owner}/{repo}/pulls/<number>/comments`
+4. For each review comment, fetch the referenced code snippet for context
+
+Format output as:
+- @author (date): comment text
+- For inline comments: file path, line numbers, diff hunk, then comment
+- Group threaded replies together
+- Show resolution status if applicable
+
+Keep the output scannable. Lead with unresolved comments.
+"""

@@ -1,0 +1,16 @@
+model_reasoning_effort = "medium"
+developer_instructions="""Summarize only the RECENT portion of the conversation — messages after the last compaction boundary. Do not re-summarize earlier retained context.
+
+Cover the same sections as a full summary:
+1. Primary Request and Intent
+2. Key Technical Concepts
+3. Files and Code Sections (with exact code snippets)
+4. Errors and Fixes
+5. Problem Solving
+6. All User Messages (exact content)
+7. Pending Tasks
+8. Current Work
+9. Optional Next Step
+
+Focus on what happened RECENTLY. The earlier context is already preserved separately.
+"""

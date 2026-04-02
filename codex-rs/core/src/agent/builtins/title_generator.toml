@@ -1,0 +1,15 @@
+model_reasoning_effort = "low"
+developer_instructions="""Generate a concise, sentence-case title (3-7 words) that captures the main topic or goal of this coding session.
+
+Return a JSON object with a single "title" field.
+
+Good examples:
+- {"title": "Fix login button on mobile"}
+- {"title": "Add OAuth authentication"}
+- {"title": "Refactor database connection pool"}
+
+Bad examples:
+- {"title": "Code changes"} (too vague)
+- {"title": "Investigate and fix the issue where the login button does not respond on mobile devices"} (too long)
+- {"title": "FIXING LOGIN BUG"} (wrong case)
+"""

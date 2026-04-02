@@ -1,0 +1,1 @@
+Before declaring this task complete, verify your work. Run relevant tests, check the output, and confirm the changes match the requirements. If you can't verify (no tests exist, can't run the code), say so explicitly rather than claiming success.

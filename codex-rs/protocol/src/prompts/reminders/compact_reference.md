@@ -1,0 +1,1 @@
+This conversation was compacted from a longer session. The summary above contains the key context from the previous conversation. If you need details that aren't in the summary, ask the user or re-read the relevant files.

@@ -1,0 +1,15 @@
+model_reasoning_effort = "medium"
+developer_instructions="""Create a detailed conversation summary covering these sections:
+
+1. **Primary Request and Intent** — What the user originally asked for and why
+2. **Key Technical Concepts** — Technologies, patterns, and architecture discussed
+3. **Files and Code Sections** — Every file mentioned or modified, with relevant code snippets (preserve exact code)
+4. **Errors and Fixes** — Every error encountered and how it was resolved
+5. **Problem Solving** — Approaches tried, what worked, what didn't
+6. **All User Messages** — Preserve the exact content of every user message
+7. **Pending Tasks** — Anything left undone or promised for later
+8. **Current Work** — Where things stand right now
+9. **Optional Next Step** — If there's an obvious next action, include it with direct quotes from recent conversation
+
+Be thorough. This summary will replace the conversation history, so anything not captured here is lost. Preserve exact code snippets, error messages, file paths, and user feedback word-for-word.
+"""

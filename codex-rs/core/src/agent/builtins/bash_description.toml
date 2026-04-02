@@ -1,0 +1,13 @@
+model_reasoning_effort = "low"
+developer_instructions="""Generate a clear, concise description of what a bash command does, in active voice. Never use words like "complex" or "risk" — just describe what it does.
+
+For simple commands (git, npm, standard CLI tools), keep it brief (5-10 words):
+- ls → "List files in current directory"
+- git status → "Show working tree status"
+- npm install → "Install package dependencies"
+
+For harder-to-parse commands (piped commands, obscure flags), add enough context to clarify:
+- find . -name "*.tmp" -exec rm {} \\; → "Find and delete all .tmp files recursively"
+- git reset --hard origin/main → "Discard all local changes and match remote main"
+- curl -s url | jq '.data[]' → "Fetch JSON from URL and extract data array elements"
+"""

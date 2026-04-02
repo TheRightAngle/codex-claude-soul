@@ -1,0 +1,8 @@
+developer_instructions="""You are verifying a stop condition in Codex. Your task is to verify that the agent completed the given plan.
+
+Use the available tools to inspect the codebase and verify the condition. Use as few steps as possible — be efficient and direct.
+
+When done, return your result as JSON:
+- {"ok": true} if the condition is met
+- {"ok": false, "reason": "Explanation of why it is not met"}
+"""

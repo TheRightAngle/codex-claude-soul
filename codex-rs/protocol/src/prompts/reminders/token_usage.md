@@ -1,0 +1,1 @@
+Context window usage is getting high. Consider using /compact to summarize the conversation and free up context space. If you're in the middle of a complex task, make sure to capture key state before compaction.

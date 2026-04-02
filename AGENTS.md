@@ -87,10 +87,12 @@ The core change is a modular prompt system mirroring Claude Code's function-per-
 
 ### Section Files
 
-`codex-rs/protocol/src/prompts/sections/` contains 21 markdown files. Each is a self-contained prompt section.
+`codex-rs/protocol/src/prompts/sections/` contains 23 markdown files. Each is a self-contained prompt section.
 
 **Always-on (8 core sections, every session):**
 - `identity.md`, `system.md`, `tone.md`, `doing_tasks.md`, `actions.md`, `tools.md`, `output.md`, `how_you_work.md`
+- Note: `output.md` uses Claude Code's ant-only "Communicating with the user" prose version (not the public "Output efficiency" version)
+- Note: `tone.md` omits the non-ant "Your responses should be short and concise" line
 
 **Always-on via PromptFeatures (7 sections, stable, default on):**
 - `verification.md` (Feature::PromptVerification)
@@ -100,6 +102,10 @@ The core change is a modular prompt system mirroring Claude Code's function-per-
 - `worktree.md` (Feature::PromptWorktree)
 - `stuck.md` (PromptFeatures.stuck, default true, no dedicated Feature flag)
 - `git_protocol.md` (unconditional, appended at tail)
+
+**Contextual (set by runtime state, not user toggle):**
+- `auto_mode.md` (PromptFeatures.auto_mode) -- 6 behavioral rules for autonomous execution, injected when approval_policy is `Never`
+- `plan_mode.md` (PromptFeatures.plan_mode) -- 5-phase enhanced plan mode workflow
 
 **User-togglable (1 section, via /experimental):**
 - `insights.md` -- Feature::PromptInsights, Stage::Experimental
@@ -111,16 +117,44 @@ The core change is a modular prompt system mirroring Claude Code's function-per-
 - `memory.md` -- reference for native memory system (DISABLED, see below)
 - `dream.md` -- reference for memory consolidation (DISABLED, see below)
 
+### System Reminders
+
+`codex-rs/protocol/src/prompts/reminders/` contains 37 contextual reminder templates (matching Claude Code's full set) injected as developer messages at runtime. Accessible via `codex_protocol::models::reminders::*`.
+
+**Task/plan tracking (4):** `task_tools.md`, `todowrite_reminder.md`, `verify_plan.md`, `verify_plan_reminder.md`
+
+**Plan mode lifecycle (7):** `plan_mode_5_phase.md`, `plan_mode_iterative.md`, `plan_mode_subagent.md`, `plan_mode_re_entry.md`, `exited_plan_mode.md`, `plan_file_reference.md`, `ultraplan_mode.md`
+
+**Session & context (5):** `session_continuation.md`, `compact_reference.md`, `output_style.md`, `invoked_skills.md`, `skill_invoked.md`
+
+**Budget & usage (3):** `token_usage.md`, `budget_warning.md`, `usd_budget.md`
+
+**File state (4):** `file_modified_externally.md`, `file_empty.md`, `file_truncated.md`, `file_shorter_than_offset.md`
+
+**Hook lifecycle (3):** `hook_blocking.md`, `hook_success.md`, `hook_stopped_continuation.md`
+
+**Tool & agent events (3):** `tool_denied.md`, `agent_mention.md`, `btw_side_question.md`
+
+**MCP & diagnostics (3):** `mcp_server_status.md`, `mcp_no_content.md`, `diagnostics_detected.md`
+
+**IDE integration (2):** `ide_file_opened.md`, `ide_lines_selected.md`
+
+**Security (1):** `malware_analysis_warning.md`
+
+**Team coordination (2):** `team_coordination.md`, `team_shutdown.md`
+
 ### Assembly
 
 `assemble_base_instructions()` in `codex-rs/protocol/src/models.rs` concatenates sections based on `PromptFeatures`. Called at session init from `codex-rs/core/src/codex.rs:575`.
 
 Feature flags in `codex-rs/features/src/lib.rs` control the togglable sections: `PromptVerification`, `PromptSuggestions`, `PromptSkills`, `PromptInsights`, `PromptAdvisor`, `PromptWorktree`.
 
+Runtime state flags: `auto_mode` (set when `AskForApproval::Never`), `plan_mode` (set when plan collaboration mode is active).
+
 ### Compaction & Init Prompts
 
 - `codex-rs/core/templates/compact/prompt.md` -- structured 5-section handoff format with no-tool-call guardrail
-- `codex-rs/tui/prompt_for_init_command.md` -- opinionated senior-dev tone, 150-300 words
+- `codex-rs/tui/prompt_for_init_command.md` -- 7-phase onboarding flow: explore codebase, fill gaps, write AGENTS.md, suggest skills, suggest hooks, check environment, summary
 
 ## TUI Changes
 
@@ -153,6 +187,56 @@ Defined in `chatwidget.rs` at line ~11121. Wired through `bottom_pane/mod.rs:325
 `codex-rs/skills/src/assets/samples/`:
 - `simplify/SKILL.md` -- three-dimension code review (reuse, quality, efficiency)
 - `stuck/SKILL.md` -- 5-step protocol to break out of debugging loops
+- `debugging/SKILL.md` -- 5-step debug flow: review issue, scan logs, check system state, explain findings, suggest fixes
+
+## Built-in Agent Roles
+
+`codex-rs/core/src/agent/builtins/` contains 29 TOML configs for built-in sub-agent roles, adapted from Claude Code's 34 agent prompt definitions.
+
+**Core agents (6):**
+- `explorer.toml` -- codebase exploration (read-only, fast, parallel searches)
+- `planner.toml` -- implementation planning (read-only, trade-off analysis, 40-line plan limit)
+- `general_purpose.toml` -- multi-step tasks, searching, architecture analysis
+- `researcher.toml` -- targeted research (focused queries, evidence-based)
+- `worker_fork.toml` -- isolated directive execution (no sub-agents, commits before reporting)
+- `awaiter.toml` -- background task polling (exponential timeouts)
+
+**Verification & security (4):**
+- `verifier.toml` -- adversarial verification (type-specific strategies, mandatory adversarial probes, PASS/FAIL/PARTIAL)
+- `security_monitor.toml` -- autonomous action monitor (24 BLOCK rules, 6 ALLOW exceptions, threat classification)
+- `security_review.toml` -- code review for exploitable vulnerabilities (OWASP categories, false positive filtering)
+- `auto_mode_reviewer.toml` -- reviews user-defined auto mode classifier rules
+
+**Git & PR (4):**
+- `quick_commit.toml` -- single commit creation with git safety protocol
+- `quick_pr.toml` -- commit + push + PR creation via gh CLI
+- `pr_comments.toml` -- fetch and display GitHub PR comments (inline + PR-level)
+- `review_pr.toml` -- code review (correctness, conventions, performance, tests, security)
+
+**Session management (5):**
+- `title_generator.toml` -- concise session title (3-7 words, JSON output)
+- `title_branch_generator.toml` -- session title + git branch name (JSON output)
+- `conversation_summarizer.toml` -- 9-section detailed conversation summary
+- `recent_summarizer.toml` -- recent-only summarization (post-compaction)
+- `session_search.toml` -- find sessions by query (metadata matching, ranked results)
+
+**Content processing (3):**
+- `webfetch_summarizer.toml` -- summarize fetched web content (trusted vs untrusted rules)
+- `bash_description.toml` -- generate concise command descriptions in active voice
+- `bash_prefix_detection.toml` -- extract command prefix, detect injection
+
+**Infrastructure (4):**
+- `hook_evaluator.toml` -- evaluate hook conditions (JSON ok/not-ok output)
+- `agent_hook.toml` -- verify stop conditions against conversation transcript
+- `batch_orchestrator.toml` -- parallel work orchestration (5-30 independent units)
+- `codex_guide.toml` -- help users with Codex CLI, Agent SDK, and API usage
+
+**Creation & setup (3):**
+- `agent_architect.toml` -- design custom agent configurations (JSON identifier + whenToUse + systemPrompt)
+- `agentsmd_creation.toml` -- analyze codebase and create AGENTS.md
+- `suggestion_generator.toml` -- predict user's natural next input (2-12 words)
+
+**Not ported from CC (5 -- platform-specific):** status-line-setup (CC PS1 conversion), /schedule (CC remote triggers), dream-memory-consolidation (memory disabled), memory-file-selector (memory disabled), session-memory-updates (memory disabled)
 
 ## MCP Server Instructions
 
@@ -207,10 +291,13 @@ Follow the upstream AGENTS.md conventions (they are merged into this file's scop
 
 | What | Where |
 |------|-------|
-| Prompt sections | `codex-rs/protocol/src/prompts/sections/*.md` |
-| Section assembler | `codex-rs/protocol/src/models.rs` (`assemble_base_instructions`) |
+| Prompt sections (23) | `codex-rs/protocol/src/prompts/sections/*.md` |
+| System reminders (37) | `codex-rs/protocol/src/prompts/reminders/*.md` |
+| Agent builtins (29) | `codex-rs/core/src/agent/builtins/*.toml` |
+| Section assembler | `codex-rs/protocol/src/models.rs` (`assemble_base_instructions`, `pub mod reminders`) |
 | Feature flags | `codex-rs/features/src/lib.rs` |
 | Session init wiring | `codex-rs/core/src/codex.rs:575` |
+| Skills (8) | `codex-rs/skills/src/assets/samples/*/SKILL.md` |
 | Spinner verbs | `codex-rs/tui/src/spinner_verbs.rs` |
 | Slash commands | `codex-rs/tui/src/slash_command.rs` |
 | Tooltips | `codex-rs/tui/tooltips.txt` |
@@ -219,10 +306,8 @@ Follow the upstream AGENTS.md conventions (they are merged into this file's scop
 | Placeholder wiring | `codex-rs/tui/src/bottom_pane/mod.rs` (`set_composer_placeholder`) |
 | Diamond indicators | `codex-rs/tui/src/exec_cell/render.rs` |
 | Compact prompt | `codex-rs/core/templates/compact/prompt.md` |
-| Init prompt | `codex-rs/tui/prompt_for_init_command.md` |
+| Init prompt (7-phase) | `codex-rs/tui/prompt_for_init_command.md` |
 | Auto-session titles | `codex-rs/core/src/tasks/mod.rs` (`derive_session_title`) |
-| Simplify skill | `codex-rs/skills/src/assets/samples/simplify/SKILL.md` |
-| Stuck skill | `codex-rs/skills/src/assets/samples/stuck/SKILL.md` |
 | Plugin injection (MCP) | `codex-rs/core/src/plugins/injection.rs` (`build_plugin_injections`) |
-| Brew update check | `codex-rs/tui/src/updates.rs` |
+| Sandbox/approval templates | `codex-rs/protocol/src/prompts/permissions/` |
 | CI workflow | `.github/workflows/build-claude-soul.yml` |

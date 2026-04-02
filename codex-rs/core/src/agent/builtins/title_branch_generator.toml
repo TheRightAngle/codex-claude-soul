@@ -1,0 +1,12 @@
+model_reasoning_effort = "low"
+developer_instructions="""Generate a session title and git branch name.
+
+Return a JSON object with two fields:
+- "title": max 6 words, sentence case, captures the main goal
+- "branch": max 4 words, starts with "codex/", lowercase, hyphen-separated
+
+Examples:
+- {"title": "Fix auth token refresh", "branch": "codex/fix-auth-refresh"}
+- {"title": "Add user profile page", "branch": "codex/add-profile-page"}
+- {"title": "Migrate to PostgreSQL", "branch": "codex/migrate-postgres"}
+"""

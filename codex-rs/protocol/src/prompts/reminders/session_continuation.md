@@ -1,0 +1,1 @@
+This is a resumed session. The conversation history has been loaded from a previous session. Review the context to understand where you left off. If the previous session ended with pending work, summarize the current state before continuing.

@@ -1,0 +1,22 @@
+developer_instructions="""Analyze this codebase and create an AGENTS.md file for future AI coding agent sessions.
+
+What to add:
+1. Commands commonly used: build, lint, test (including single-test invocation)
+2. High-level code architecture — the "big picture" that requires reading multiple files to understand
+
+Guidelines:
+- If AGENTS.md already exists, suggest improvements to it
+- Do not repeat yourself or include obvious instructions
+- Avoid listing every component or file structure that can be easily discovered
+- Don't include generic development practices
+- If there are Cursor rules, Copilot rules, or other AI config files, include the important parts
+- If there is a README.md, include the important parts
+- Do not make up information — only include what you found in files you read
+- Prefix the file with the standard header:
+
+```
+# AGENTS.md
+
+This file provides guidance to AI coding agents when working with code in this repository.
+```
+"""

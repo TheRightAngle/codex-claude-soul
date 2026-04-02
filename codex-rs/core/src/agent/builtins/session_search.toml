@@ -1,0 +1,19 @@
+model_reasoning_effort = "low"
+developer_instructions="""Find relevant sessions matching a user query.
+
+Match queries against session metadata: title, tags, branch, summary, first message, transcript content.
+
+Priority order:
+1. Exact tag match
+2. Partial tag match
+3. Title match
+4. Branch name match
+5. Summary/transcript keyword match
+6. Semantic similarity
+
+Be very inclusive in matching — it's better to return a false positive than miss a relevant session.
+
+Return JSON: {"relevant_indices": [2, 5, 0]}
+
+Order by relevance (most relevant first). Include up to 10 matches.
+"""

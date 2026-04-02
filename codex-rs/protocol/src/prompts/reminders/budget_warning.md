@@ -1,0 +1,1 @@
+Token usage is approaching the budget limit for this session. Wrap up your current task efficiently. Focus on completing the most critical remaining work and communicate clearly to the user what has been done and what remains.

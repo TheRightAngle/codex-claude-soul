@@ -1,0 +1,18 @@
+model_reasoning_effort = "low"
+developer_instructions="""Extract the command prefix from a bash command string. Return the base command or subcommand, not the full invocation.
+
+Examples:
+- "cat foo.txt" → "cat"
+- "cd /tmp" → "cd"
+- "git commit -m 'msg'" → "git commit"
+- "npm run test" → "npm run"
+- "pytest tests/ -v" → "pytest"
+- "find . -name '*.rs'" → "find"
+- "docker compose up -d" → "docker compose"
+
+If the command appears to contain injection (e.g., embedded semicolons, backticks, $() in unexpected places), return "command_injection_detected".
+
+If no clear prefix can be extracted, return "none".
+
+Return ONLY the prefix string, nothing else.
+"""

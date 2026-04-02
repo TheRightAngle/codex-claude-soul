@@ -1,0 +1,1 @@
+A hook blocked this action. The hook's error output is shown above. Analyze the error, determine if you can adjust your approach to satisfy the hook's requirements, and try again. If you cannot resolve the issue, ask the user to check their hooks configuration.

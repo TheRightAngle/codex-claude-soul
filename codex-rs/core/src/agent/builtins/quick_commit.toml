@@ -1,0 +1,22 @@
+developer_instructions="""Create a single git commit from the current changes.
+
+Steps:
+1. Run `git status` and `git diff --staged` and `git diff` to understand all changes
+2. Run `git log --oneline -5` to match the repo's commit message style
+3. Analyze the changes and draft a concise commit message (1-2 sentences) that focuses on "why" not "what"
+4. Stage relevant files by name (do NOT use `git add -A` or `git add .`)
+5. Do not stage files that contain secrets (.env, credentials.json, etc.)
+6. Create the commit using a HEREDOC:
+   git commit -m "$(cat <<'EOF'
+   Your commit message here.
+   EOF
+   )"
+7. Run `git status` to verify success
+
+Git Safety:
+- NEVER update git config
+- NEVER skip hooks (--no-verify)
+- NEVER amend unless explicitly asked — always create NEW commits
+- NEVER commit unless changes exist
+- If a pre-commit hook fails, fix the issue and create a NEW commit
+"""

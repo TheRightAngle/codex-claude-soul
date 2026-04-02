@@ -366,8 +366,84 @@ const SECTION_STUCK: &str = include_str!("prompts/sections/stuck.md");
 // Simplify: wired natively via skills/src/assets/samples/simplify/SKILL.md
 // Session titles: wired natively via derive_session_title() in tasks/mod.rs
 
+// Contextual sections (injected based on runtime state):
+const SECTION_AUTO_MODE: &str = include_str!("prompts/sections/auto_mode.md");
+const SECTION_PLAN_MODE: &str = include_str!("prompts/sections/plan_mode.md");
+
 // User-togglable section (like Claude Code's outputStyle setting):
 const SECTION_INSIGHTS: &str = include_str!("prompts/sections/insights.md");
+
+// System reminder templates (injected contextually as developer messages).
+// Adapted from Claude Code's ~37 system reminders for the Codex runtime.
+pub mod reminders {
+    // Task/plan tracking
+    pub const TASK_TOOLS: &str = include_str!("prompts/reminders/task_tools.md");
+    pub const TODOWRITE_REMINDER: &str = include_str!("prompts/reminders/todowrite_reminder.md");
+    pub const VERIFY_PLAN: &str = include_str!("prompts/reminders/verify_plan.md");
+    pub const VERIFY_PLAN_REMINDER: &str =
+        include_str!("prompts/reminders/verify_plan_reminder.md");
+
+    // Plan mode lifecycle
+    pub const PLAN_MODE_5_PHASE: &str = include_str!("prompts/reminders/plan_mode_5_phase.md");
+    pub const PLAN_MODE_ITERATIVE: &str =
+        include_str!("prompts/reminders/plan_mode_iterative.md");
+    pub const PLAN_MODE_SUBAGENT: &str = include_str!("prompts/reminders/plan_mode_subagent.md");
+    pub const PLAN_MODE_RE_ENTRY: &str = include_str!("prompts/reminders/plan_mode_re_entry.md");
+    pub const EXITED_PLAN_MODE: &str = include_str!("prompts/reminders/exited_plan_mode.md");
+    pub const PLAN_FILE_REFERENCE: &str =
+        include_str!("prompts/reminders/plan_file_reference.md");
+    pub const ULTRAPLAN_MODE: &str = include_str!("prompts/reminders/ultraplan_mode.md");
+
+    // Session & context
+    pub const SESSION_CONTINUATION: &str =
+        include_str!("prompts/reminders/session_continuation.md");
+    pub const COMPACT_REFERENCE: &str = include_str!("prompts/reminders/compact_reference.md");
+    pub const OUTPUT_STYLE: &str = include_str!("prompts/reminders/output_style.md");
+    pub const INVOKED_SKILLS: &str = include_str!("prompts/reminders/invoked_skills.md");
+    pub const SKILL_INVOKED: &str = include_str!("prompts/reminders/skill_invoked.md");
+
+    // Budget & usage
+    pub const TOKEN_USAGE: &str = include_str!("prompts/reminders/token_usage.md");
+    pub const BUDGET_WARNING: &str = include_str!("prompts/reminders/budget_warning.md");
+    pub const USD_BUDGET: &str = include_str!("prompts/reminders/usd_budget.md");
+
+    // File state
+    pub const FILE_MODIFIED_EXTERNALLY: &str =
+        include_str!("prompts/reminders/file_modified_externally.md");
+    pub const FILE_EMPTY: &str = include_str!("prompts/reminders/file_empty.md");
+    pub const FILE_TRUNCATED: &str = include_str!("prompts/reminders/file_truncated.md");
+    pub const FILE_SHORTER_THAN_OFFSET: &str =
+        include_str!("prompts/reminders/file_shorter_than_offset.md");
+
+    // Hook lifecycle
+    pub const HOOK_BLOCKING: &str = include_str!("prompts/reminders/hook_blocking.md");
+    pub const HOOK_SUCCESS: &str = include_str!("prompts/reminders/hook_success.md");
+    pub const HOOK_STOPPED_CONTINUATION: &str =
+        include_str!("prompts/reminders/hook_stopped_continuation.md");
+
+    // Tool & agent events
+    pub const TOOL_DENIED: &str = include_str!("prompts/reminders/tool_denied.md");
+    pub const AGENT_MENTION: &str = include_str!("prompts/reminders/agent_mention.md");
+    pub const BTW_SIDE_QUESTION: &str = include_str!("prompts/reminders/btw_side_question.md");
+
+    // MCP & diagnostics
+    pub const MCP_SERVER_STATUS: &str = include_str!("prompts/reminders/mcp_server_status.md");
+    pub const MCP_NO_CONTENT: &str = include_str!("prompts/reminders/mcp_no_content.md");
+    pub const DIAGNOSTICS_DETECTED: &str =
+        include_str!("prompts/reminders/diagnostics_detected.md");
+
+    // IDE integration
+    pub const IDE_FILE_OPENED: &str = include_str!("prompts/reminders/ide_file_opened.md");
+    pub const IDE_LINES_SELECTED: &str = include_str!("prompts/reminders/ide_lines_selected.md");
+
+    // Security & safety
+    pub const MALWARE_ANALYSIS_WARNING: &str =
+        include_str!("prompts/reminders/malware_analysis_warning.md");
+
+    // Team coordination
+    pub const TEAM_COORDINATION: &str = include_str!("prompts/reminders/team_coordination.md");
+    pub const TEAM_SHUTDOWN: &str = include_str!("prompts/reminders/team_shutdown.md");
+}
 
 /// Feature toggles for configurable prompt sections.
 /// Organic features default to true and are not user-togglable (matches Claude Code).
@@ -383,6 +459,9 @@ pub struct PromptFeatures {
     pub stuck: bool,
     // memory/dream: handled natively by Feature::MemoryTool (core/src/memories/)
     // compaction/simplify/session_titles: injected only when invoked, not every turn
+    // Contextual — set by runtime state, not user toggle
+    pub auto_mode: bool,
+    pub plan_mode: bool,
     // User-togglable (Experimental in Feature system)
     pub insights: bool,
 }
@@ -396,6 +475,8 @@ impl Default for PromptFeatures {
             advisor: true,
             worktree: true,
             stuck: true,
+            auto_mode: false,
+            plan_mode: false,
             insights: true,
         }
     }
@@ -444,6 +525,14 @@ pub fn assemble_base_instructions(features: &PromptFeatures) -> String {
     // respective command handlers, but are NOT part of the base instructions.
     if features.stuck {
         sections.push(SECTION_STUCK);
+    }
+
+    // --- Contextual features (runtime state) ---
+    if features.auto_mode {
+        sections.push(SECTION_AUTO_MODE);
+    }
+    if features.plan_mode {
+        sections.push(SECTION_PLAN_MODE);
     }
 
     // --- User-togglable features ---
