@@ -3927,6 +3927,25 @@ impl Session {
             let state = self.state.lock().await;
             state.token_info_and_rate_limits()
         };
+
+        // Inject TOKEN_USAGE reminder when context window usage exceeds 80%.
+        if let Some(ref token_info) = info {
+            if let Some(model_context_window) = token_info.model_context_window {
+                if model_context_window > 0 {
+                    let used = token_info.total_token_usage.total_tokens as f64;
+                    let max = model_context_window as f64;
+                    if used / max > 0.8 {
+                        crate::reminder_injection::inject_reminder(
+                            self,
+                            turn_context,
+                            codex_protocol::models::reminders::TOKEN_USAGE,
+                        )
+                        .await;
+                    }
+                }
+            }
+        }
+
         let event = EventMsg::TokenCount(TokenCountEvent { info, rate_limits });
         self.send_event(turn_context, event).await;
     }
