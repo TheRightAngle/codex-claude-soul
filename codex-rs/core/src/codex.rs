@@ -4418,6 +4418,14 @@ impl Session {
 
         let mut manager = self.services.mcp_connection_manager.write().await;
         *manager = refreshed_manager;
+
+        // MCP_SERVER_STATUS: notify the model that MCP tool availability may have changed.
+        crate::reminder_injection::inject_reminder(
+            self,
+            turn_context,
+            codex_protocol::models::reminders::MCP_SERVER_STATUS,
+        )
+        .await;
     }
 
     async fn refresh_mcp_servers_if_requested(&self, turn_context: &TurnContext) {
@@ -5812,6 +5820,20 @@ pub(crate) async fn run_turn(
     sess.record_context_updates_and_set_reference_context_item(turn_context.as_ref())
         .await;
 
+    // TEAM_COORDINATION: when this session is a spawned sub-agent, remind the
+    // model that it is part of a multi-agent team and should coordinate.
+    if matches!(
+        turn_context.session_source,
+        SessionSource::SubAgent(SubAgentSource::ThreadSpawn { .. })
+    ) {
+        crate::reminder_injection::inject_reminder(
+            &sess,
+            &turn_context,
+            codex_protocol::models::reminders::TEAM_COORDINATION,
+        )
+        .await;
+    }
+
     let loaded_plugins = sess
         .services
         .plugins_manager
@@ -5983,6 +6005,14 @@ pub(crate) async fn run_turn(
     if !skill_items.is_empty() {
         sess.record_conversation_items(&turn_context, &skill_items)
             .await;
+        // SKILL_INVOKED: tell the model that skill instructions have been loaded
+        // and should be followed for this task.
+        crate::reminder_injection::inject_reminder(
+            &sess,
+            &turn_context,
+            codex_protocol::models::reminders::SKILL_INVOKED,
+        )
+        .await;
     }
     if !plugin_items.is_empty() {
         sess.record_conversation_items(&turn_context, &plugin_items)
