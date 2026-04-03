@@ -12,6 +12,7 @@ use codex_protocol::items::TurnItem;
 use codex_protocol::models::DeveloperInstructions;
 use codex_protocol::models::ResponseInputItem;
 use codex_protocol::models::ResponseItem;
+use codex_protocol::models::reminders;
 use codex_protocol::protocol::AskForApproval;
 use codex_protocol::protocol::EventMsg;
 use codex_protocol::protocol::HookCompletedEvent;
@@ -23,6 +24,7 @@ use serde_json::Value;
 use crate::codex::Session;
 use crate::codex::TurnContext;
 use crate::event_mapping::parse_turn_item;
+use crate::reminder_injection::wrap_reminder;
 
 pub(crate) struct HookRuntimeOutcome {
     pub should_stop: bool,
@@ -142,7 +144,17 @@ pub(crate) async fn run_pre_tool_use_hooks(
     } = sess.hooks().run_pre_tool_use(request).await;
     emit_hook_completed_events(sess, turn_context, hook_events).await;
 
-    if should_block { block_reason } else { None }
+    if should_block {
+        record_additional_contexts(
+            sess,
+            turn_context,
+            vec![wrap_reminder(reminders::HOOK_BLOCKING)],
+        )
+        .await;
+        block_reason
+    } else {
+        None
+    }
 }
 
 pub(crate) async fn run_post_tool_use_hooks(
@@ -167,8 +179,19 @@ pub(crate) async fn run_post_tool_use_hooks(
     let preview_runs = sess.hooks().preview_post_tool_use(&request);
     emit_hook_started_events(sess, turn_context, preview_runs).await;
 
-    let outcome = sess.hooks().run_post_tool_use(request).await;
+    let mut outcome = sess.hooks().run_post_tool_use(request).await;
     emit_hook_completed_events(sess, turn_context, outcome.hook_events.clone()).await;
+
+    if outcome.should_stop {
+        outcome
+            .additional_contexts
+            .push(wrap_reminder(reminders::HOOK_STOPPED_CONTINUATION));
+    } else if !outcome.additional_contexts.is_empty() {
+        outcome
+            .additional_contexts
+            .push(wrap_reminder(reminders::HOOK_SUCCESS));
+    }
+
     outcome
 }
 
