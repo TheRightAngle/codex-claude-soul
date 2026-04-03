@@ -1,13 +1,16 @@
 use crate::codex::PreviousTurnSettings;
 use crate::codex::TurnContext;
 use crate::environment_context::EnvironmentContext;
+use crate::reminder_injection::wrap_reminder;
 use crate::shell::Shell;
 use codex_execpolicy::Policy;
 use codex_features::Feature;
+use codex_protocol::config_types::ModeKind;
 use codex_protocol::config_types::Personality;
 use codex_protocol::models::ContentItem;
 use codex_protocol::models::DeveloperInstructions;
 use codex_protocol::models::ResponseItem;
+use codex_protocol::models::reminders;
 use codex_protocol::openai_models::ModelInfo;
 use codex_protocol::protocol::TurnContextItem;
 
@@ -51,20 +54,53 @@ fn build_permissions_update_item(
     ))
 }
 
-fn build_collaboration_mode_update_item(
+fn build_collaboration_mode_update_items(
     previous: Option<&TurnContextItem>,
     next: &TurnContext,
-) -> Option<DeveloperInstructions> {
-    let prev = previous?;
-    if prev.collaboration_mode.as_ref() != Some(&next.collaboration_mode) {
-        // If the next mode has empty developer instructions, this returns None and we emit no
-        // update, so prior collaboration instructions remain in the prompt history.
-        Some(DeveloperInstructions::from_collaboration_mode(
-            &next.collaboration_mode,
-        )?)
-    } else {
-        None
+) -> Vec<DeveloperInstructions> {
+    let mut items = Vec::new();
+
+    let prev = match previous {
+        Some(p) => p,
+        None => return items,
+    };
+
+    if prev.collaboration_mode.as_ref() == Some(&next.collaboration_mode) {
+        return items;
     }
+
+    // Emit the collaboration mode developer instructions if present.
+    if let Some(collab_instructions) =
+        DeveloperInstructions::from_collaboration_mode(&next.collaboration_mode)
+    {
+        items.push(collab_instructions);
+    }
+
+    let prev_mode = prev
+        .collaboration_mode
+        .as_ref()
+        .map(|cm| cm.mode)
+        .unwrap_or(ModeKind::Default);
+    let next_mode = next.collaboration_mode.mode;
+
+    match (prev_mode, next_mode) {
+        // Entering plan mode from a non-plan mode.
+        (prev, ModeKind::Plan) if prev != ModeKind::Plan => {
+            // Use the 5-phase plan workflow as the default plan mode reminder.
+            items.push(DeveloperInstructions::new(wrap_reminder(
+                reminders::PLAN_MODE_5_PHASE,
+            )));
+        }
+        // Exiting plan mode to a non-plan mode.
+        (ModeKind::Plan, next) if next != ModeKind::Plan => {
+            items.push(DeveloperInstructions::new(wrap_reminder(
+                reminders::EXITED_PLAN_MODE,
+            )));
+        }
+        _ => {}
+    }
+
+    items
 }
 
 pub(crate) fn build_realtime_update_item(
@@ -203,12 +239,12 @@ pub(crate) fn build_settings_update_items(
         // any other context diffs on this turn.
         build_model_instructions_update_item(previous_turn_settings, next),
         build_permissions_update_item(previous, next, exec_policy),
-        build_collaboration_mode_update_item(previous, next),
         build_realtime_update_item(previous, previous_turn_settings, next),
         build_personality_update_item(previous, next, personality_feature_enabled),
     ]
     .into_iter()
     .flatten()
+    .chain(build_collaboration_mode_update_items(previous, next))
     .map(DeveloperInstructions::into_text)
     .collect();
 
