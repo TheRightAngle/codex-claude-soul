@@ -3,46 +3,6 @@ use crate::ResponsesApiTool;
 use crate::ToolSpec;
 use std::collections::BTreeMap;
 
-pub fn create_read_file_tool() -> ToolSpec {
-    let properties = BTreeMap::from([
-        (
-            "path".to_string(),
-            JsonSchema::String {
-                description: Some("Absolute path of the file to read.".to_string()),
-            },
-        ),
-        (
-            "offset".to_string(),
-            JsonSchema::Number {
-                description: Some(
-                    "The 1-indexed line number to start reading from. Defaults to 1.".to_string(),
-                ),
-            },
-        ),
-        (
-            "limit".to_string(),
-            JsonSchema::Number {
-                description: Some(
-                    "The maximum number of lines to return. Defaults to 250.".to_string(),
-                ),
-            },
-        ),
-    ]);
-
-    ToolSpec::Function(ResponsesApiTool {
-        name: "read_file".to_string(),
-        description: "Reads lines from a local file with 1-indexed line numbers. Use offset and limit to paginate through large files.".to_string(),
-        strict: false,
-        defer_loading: None,
-        parameters: JsonSchema::Object {
-            properties,
-            required: Some(vec!["path".to_string()]),
-            additional_properties: Some(false.into()),
-        },
-        output_schema: None,
-    })
-}
-
 pub fn create_list_dir_tool() -> ToolSpec {
     let properties = BTreeMap::from([
         (

@@ -28,7 +28,6 @@ use crate::create_js_repl_reset_tool;
 use crate::create_js_repl_tool;
 use crate::create_list_agents_tool;
 use crate::create_list_dir_tool;
-use crate::create_read_file_tool;
 use crate::create_list_mcp_resource_templates_tool;
 use crate::create_list_mcp_resources_tool;
 use crate::create_local_shell_tool;
@@ -284,19 +283,6 @@ pub fn build_tool_registry_plan(
             }
         }
         plan.register_handler("apply_patch", ToolHandlerKind::ApplyPatch);
-    }
-
-    if config
-        .experimental_supported_tools
-        .iter()
-        .any(|tool| tool == "read_file")
-    {
-        plan.push_spec(
-            create_read_file_tool(),
-            /*supports_parallel_tool_calls*/ true,
-            config.code_mode_enabled,
-        );
-        plan.register_handler("read_file", ToolHandlerKind::ReadFile);
     }
 
     if config
