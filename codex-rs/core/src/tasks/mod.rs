@@ -511,11 +511,29 @@ impl Session {
                 &[("token_type", "reasoning_output"), tmp_mem],
             );
         }
+        // Auto-generate session title after first turn if no name is set.
+        // Cloned before last_agent_message is moved into TurnComplete.
+        let title_message = last_agent_message.clone();
+
         let event = EventMsg::TurnComplete(TurnCompleteEvent {
             turn_id: turn_context.sub_id.clone(),
             last_agent_message,
         });
         self.send_event(turn_context.as_ref(), event).await;
+
+        // Fire-and-forget: title generation runs after TurnComplete so it
+        // can never block the spinner from stopping.
+        if let Some(msg) = title_message {
+            let session = Arc::clone(self);
+            let sub_id = format!("{}-auto-title", turn_context.sub_id);
+            tokio::spawn(async move {
+                if session.get_thread_name().await.is_none() && !msg.trim().is_empty() {
+                    if let Some(title) = derive_session_title(&msg) {
+                        session.auto_set_thread_name(sub_id, title).await;
+                    }
+                }
+            });
+        }
 
         if should_clear_active_turn {
             let session = Arc::clone(self);
