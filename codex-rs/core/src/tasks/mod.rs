@@ -511,17 +511,6 @@ impl Session {
                 &[("token_type", "reasoning_output"), tmp_mem],
             );
         }
-        // Auto-generate session title after first turn if no name is set.
-        // Mirrors Claude Code's agent-prompt-coding-session-title-generator.
-        if let Some(ref msg) = last_agent_message {
-            if self.get_thread_name().await.is_none() && !msg.trim().is_empty() {
-                if let Some(title) = derive_session_title(msg) {
-                    let sub_id = format!("{}-auto-title", turn_context.sub_id);
-                    self.auto_set_thread_name(sub_id, title).await;
-                }
-            }
-        }
-
         let event = EventMsg::TurnComplete(TurnCompleteEvent {
             turn_id: turn_context.sub_id.clone(),
             last_agent_message,
