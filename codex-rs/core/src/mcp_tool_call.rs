@@ -233,7 +233,10 @@ pub(crate) async fn handle_mcp_tool_call(
                 (result, Some(duration))
             }
             McpToolApprovalDecision::Decline => {
-                let message = "user rejected MCP tool call".to_string();
+                let message = crate::reminder_injection::annotate_tool_result(
+                    "user rejected MCP tool call",
+                    codex_protocol::models::reminders::TOOL_DENIED,
+                );
                 (
                     notify_mcp_tool_call_skip(
                         sess.as_ref(),
@@ -288,7 +291,7 @@ pub(crate) async fn handle_mcp_tool_call(
             call_duration,
         );
 
-        return CallToolResult::from_result(result);
+        return maybe_annotate_empty_mcp_result(CallToolResult::from_result(result));
     }
 
     maybe_mark_thread_memory_mode_polluted(sess.as_ref(), turn_context.as_ref()).await;
@@ -349,7 +352,47 @@ pub(crate) async fn handle_mcp_tool_call(
         Some(duration),
     );
 
-    CallToolResult::from_result(result)
+    maybe_annotate_empty_mcp_result(CallToolResult::from_result(result))
+}
+
+/// If an MCP tool call returned successfully but with no displayable text
+/// content, annotate the result so the model is aware of the empty response.
+fn maybe_annotate_empty_mcp_result(result: CallToolResult) -> CallToolResult {
+    if result.is_error == Some(true) {
+        return result;
+    }
+
+    let has_displayable_content = result.content.iter().any(|block| {
+        if let Some(typ) = block.get("type").and_then(serde_json::Value::as_str) {
+            if typ == "text" {
+                return block
+                    .get("text")
+                    .and_then(serde_json::Value::as_str)
+                    .is_some_and(|t| !t.trim().is_empty());
+            }
+            // Images, resources, etc. count as displayable.
+            return true;
+        }
+        false
+    });
+
+    if has_displayable_content {
+        return result;
+    }
+
+    // Append the MCP_NO_CONTENT reminder as an extra text content block.
+    let reminder_text = crate::reminder_injection::wrap_reminder(
+        codex_protocol::models::reminders::MCP_NO_CONTENT,
+    );
+    let mut content = result.content;
+    content.push(serde_json::json!({
+        "type": "text",
+        "text": reminder_text,
+    }));
+    CallToolResult {
+        content,
+        ..result
+    }
 }
 
 fn emit_mcp_call_metrics(

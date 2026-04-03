@@ -354,7 +354,11 @@ impl ToolEmitter {
                     msg
                 };
                 let event = ToolEventStage::Failure(ToolEventFailure::Rejected(normalized.clone()));
-                let result = Err(FunctionCallError::RespondToModel(normalized));
+                let annotated = crate::reminder_injection::annotate_tool_result(
+                    &normalized,
+                    codex_protocol::models::reminders::TOOL_DENIED,
+                );
+                let result = Err(FunctionCallError::RespondToModel(annotated));
                 (event, result)
             }
         };
