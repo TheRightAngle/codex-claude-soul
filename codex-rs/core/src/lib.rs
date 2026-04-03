@@ -97,6 +97,7 @@ pub mod windows_sandbox;
 pub use client::X_RESPONSESAPI_INCLUDE_TIMING_METRICS_HEADER;
 pub use codex_protocol::config_types::ModelProviderAuthInfo;
 mod event_mapping;
+pub(crate) mod reminder_injection;
 pub mod review_format;
 pub mod review_prompts;
 mod thread_manager;
