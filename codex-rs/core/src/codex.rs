@@ -3584,16 +3584,40 @@ impl Session {
             collaboration_mode,
             base_instructions,
             session_source,
+            history_has_compaction,
         ) = {
             let state = self.state.lock().await;
+            let has_compaction = state
+                .history
+                .raw_items()
+                .iter()
+                .any(|item| matches!(item, ResponseItem::Compaction { .. }));
             (
                 state.reference_context_item(),
                 state.previous_turn_settings(),
                 state.session_configuration.collaboration_mode.clone(),
                 state.session_configuration.base_instructions.clone(),
                 state.session_configuration.session_source.clone(),
+                has_compaction,
             )
         };
+        // -- Turn-start context reminders --
+        // SESSION_CONTINUATION: Inject when reinjecting context for a session that already
+        // had prior turns (resumed, forked, or post-compaction). `previous_turn_settings`
+        // being `Some` indicates a previous turn existed before this context injection.
+        if previous_turn_settings.is_some() {
+            developer_sections.push(crate::reminder_injection::wrap_reminder(
+                codex_protocol::models::reminders::SESSION_CONTINUATION,
+            ));
+        }
+        // COMPACT_REFERENCE: Inject when the history contains a compaction marker,
+        // indicating this session's context was compacted from a longer conversation.
+        if history_has_compaction {
+            developer_sections.push(crate::reminder_injection::wrap_reminder(
+                codex_protocol::models::reminders::COMPACT_REFERENCE,
+            ));
+        }
+
         if let Some(model_switch_message) =
             crate::context_manager::updates::build_model_instructions_update_item(
                 previous_turn_settings.as_ref(),
