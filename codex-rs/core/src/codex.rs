@@ -1345,6 +1345,18 @@ impl Session {
         state.session_configuration.codex_home().clone()
     }
 
+    /// Increment the plan-update turn counter (called at turn completion).
+    pub(crate) async fn increment_turns_since_plan_update(&self) {
+        let mut state = self.state.lock().await;
+        state.increment_turns_since_plan_update();
+    }
+
+    /// Reset the plan-update turn counter (called from the `update_plan` tool handler).
+    pub(crate) async fn reset_turns_since_plan_update(&self) {
+        let mut state = self.state.lock().await;
+        state.reset_turns_since_plan_update();
+    }
+
     pub(crate) fn subscribe_out_of_band_elicitation_pause_state(&self) -> watch::Receiver<bool> {
         self.out_of_band_elicitation_paused.subscribe()
     }
@@ -3585,6 +3597,8 @@ impl Session {
             base_instructions,
             session_source,
             history_has_compaction,
+            turns_since_plan_update,
+            credits_depleted,
         ) = {
             let state = self.state.lock().await;
             let has_compaction = state
@@ -3592,6 +3606,12 @@ impl Session {
                 .raw_items()
                 .iter()
                 .any(|item| matches!(item, ResponseItem::Compaction { .. }));
+            let credits_low = state
+                .latest_rate_limits
+                .as_ref()
+                .and_then(|rl| rl.credits.as_ref())
+                .map(|c| !c.has_credits && !c.unlimited)
+                .unwrap_or(false);
             (
                 state.reference_context_item(),
                 state.previous_turn_settings(),
@@ -3599,6 +3619,8 @@ impl Session {
                 state.session_configuration.base_instructions.clone(),
                 state.session_configuration.session_source.clone(),
                 has_compaction,
+                state.turns_since_plan_update,
+                credits_low,
             )
         };
         // -- Turn-start context reminders --
@@ -3617,6 +3639,40 @@ impl Session {
                 codex_protocol::models::reminders::COMPACT_REFERENCE,
             ));
         }
+        // TASK_TOOLS: Nudge the model to use update_plan when several turns
+        // have elapsed without a plan update.
+        if turns_since_plan_update > 3 {
+            developer_sections.push(crate::reminder_injection::wrap_reminder(
+                codex_protocol::models::reminders::TASK_TOOLS,
+            ));
+        }
+        // PLAN_FILE_REFERENCE: Inject when a plan file exists and we are NOT
+        // in plan mode. Codex RS does not yet persist plan files to disk (the
+        // update_plan tool is purely event-driven), so this is a no-op for
+        // now. Wire this when plan file persistence is added.
+        // OUTPUT_STYLE: Remind the model to follow output-style guidelines
+        // when a personality is explicitly configured.
+        if turn_context.personality.is_some() {
+            developer_sections.push(crate::reminder_injection::wrap_reminder(
+                codex_protocol::models::reminders::OUTPUT_STYLE,
+            ));
+        }
+        // BUDGET_WARNING: Warn the model when credits are depleted so it can
+        // wrap up efficiently. Only fires when the backend reports a non-
+        // unlimited account with has_credits == false.
+        if credits_depleted {
+            developer_sections.push(crate::reminder_injection::wrap_reminder(
+                codex_protocol::models::reminders::BUDGET_WARNING,
+            ));
+        }
+        // USD_BUDGET: Requires a user-configured USD spending cap, which is
+        // not yet supported in the Codex RS config. Skip for now.
+        //
+        // Plan mode variants (PLAN_MODE_ITERATIVE, PLAN_MODE_SUBAGENT,
+        // ULTRAPLAN_MODE): Currently only the 5-phase plan mode exists
+        // (wired in context_manager::updates). When plan strategy variants
+        // are added (e.g. iterative, subagent, ultra), select the
+        // appropriate reminder constant there based on the chosen variant.
 
         if let Some(model_switch_message) =
             crate::context_manager::updates::build_model_instructions_update_item(

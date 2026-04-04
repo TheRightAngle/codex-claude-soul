@@ -33,6 +33,10 @@ pub(crate) struct SessionState {
     pub(crate) active_connector_selection: HashSet<String>,
     pub(crate) pending_session_start_source: Option<codex_hooks::SessionStartSource>,
     granted_permissions: Option<PermissionProfile>,
+    /// Number of completed turns since the last `update_plan` tool call.
+    /// Used to trigger the TASK_TOOLS reminder after several turns without a
+    /// plan update, nudging the model to keep its plan current.
+    pub(crate) turns_since_plan_update: u32,
 }
 
 impl SessionState {
@@ -51,6 +55,7 @@ impl SessionState {
             active_connector_selection: HashSet::new(),
             pending_session_start_source: None,
             granted_permissions: None,
+            turns_since_plan_update: 0,
         }
     }
 
@@ -213,6 +218,16 @@ impl SessionState {
 
     pub(crate) fn granted_permissions(&self) -> Option<PermissionProfile> {
         self.granted_permissions.clone()
+    }
+
+    /// Increment the turn counter for plan-update staleness tracking.
+    pub(crate) fn increment_turns_since_plan_update(&mut self) {
+        self.turns_since_plan_update = self.turns_since_plan_update.saturating_add(1);
+    }
+
+    /// Reset the turn counter after an `update_plan` tool call.
+    pub(crate) fn reset_turns_since_plan_update(&mut self) {
+        self.turns_since_plan_update = 0;
     }
 }
 

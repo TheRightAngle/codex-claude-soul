@@ -521,6 +521,9 @@ impl Session {
         });
         self.send_event(turn_context.as_ref(), event).await;
 
+        // Track turns since last plan update for TASK_TOOLS reminder.
+        self.increment_turns_since_plan_update().await;
+
         // Fire-and-forget: title generation runs after TurnComplete so it
         // can never block the spinner from stopping.
         if let Some(msg) = title_message {

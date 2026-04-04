@@ -92,6 +92,8 @@ pub(crate) async fn handle_update_plan(
     session
         .send_event(turn_context, EventMsg::PlanUpdate(args))
         .await;
+    // Reset the turn counter so the TASK_TOOLS reminder is suppressed.
+    session.reset_turns_since_plan_update().await;
     Ok("Plan updated".to_string())
 }
 
