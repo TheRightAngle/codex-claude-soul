@@ -19,6 +19,10 @@ fn build_environment_update_item(
     next: &TurnContext,
     shell: &Shell,
 ) -> Option<ResponseItem> {
+    if !next.config.include_environment_context {
+        return None;
+    }
+
     let prev = previous?;
     let prev_context = EnvironmentContext::from_turn_context_item(prev, shell);
     let next_context = EnvironmentContext::from_turn_context(next, shell);
@@ -36,6 +40,10 @@ fn build_permissions_update_item(
     next: &TurnContext,
     exec_policy: &Policy,
 ) -> Option<DeveloperInstructions> {
+    if !next.config.include_permissions_instructions {
+        return None;
+    }
+
     let prev = previous?;
     if prev.sandbox_policy == *next.sandbox_policy.get()
         && prev.approval_policy == next.approval_policy.value()
