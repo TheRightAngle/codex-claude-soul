@@ -1,14 +1,17 @@
 use crate::context_manager::updates::build_developer_update_item;
 use codex_protocol::models::ResponseItem;
 
-/// Wrap reminder text in system-reminder tags for model consumption.
+/// Wrap reminder text as a developer instruction.
+/// Uses a clear section marker that works with any model (GPT, Claude, etc.).
+/// These are injected as role="developer" messages via the Responses API,
+/// so the model already treats them as system-level instructions.
 pub fn wrap_reminder(reminder: &str) -> String {
-    format!("<system-reminder>\n{reminder}\n</system-reminder>")
+    format!("[System Notice]\n{reminder}")
 }
 
-/// Append a system-reminder annotation to a tool result string.
+/// Append a system notice annotation to a tool result string.
 pub fn annotate_tool_result(output: &str, reminder: &str) -> String {
-    format!("{output}\n\n{}", wrap_reminder(reminder))
+    format!("{output}\n\n[System Notice] {reminder}")
 }
 
 /// Build a developer message ResponseItem containing a system reminder.
