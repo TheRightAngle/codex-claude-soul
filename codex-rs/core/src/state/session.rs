@@ -37,6 +37,14 @@ pub(crate) struct SessionState {
     /// Used to trigger the TASK_TOOLS reminder after several turns without a
     /// plan update, nudging the model to keep its plan current.
     pub(crate) turns_since_plan_update: u32,
+    /// Whether `update_plan` was ever used in this session. The TASK_TOOLS
+    /// reminder only fires when the model has previously used planning, so
+    /// simple Q&A sessions aren't nagged.
+    pub(crate) plan_ever_used: bool,
+    /// Whether the TOKEN_USAGE high-water reminder has already been sent.
+    /// Prevents spamming the same reminder every turn once past 80%.
+    /// Cleared on compaction (which frees context).
+    pub(crate) token_reminder_sent: bool,
 }
 
 impl SessionState {
@@ -56,6 +64,8 @@ impl SessionState {
             pending_session_start_source: None,
             granted_permissions: None,
             turns_since_plan_update: 0,
+            plan_ever_used: false,
+            token_reminder_sent: false,
         }
     }
 
@@ -228,6 +238,17 @@ impl SessionState {
     /// Reset the turn counter after an `update_plan` tool call.
     pub(crate) fn reset_turns_since_plan_update(&mut self) {
         self.turns_since_plan_update = 0;
+        self.plan_ever_used = true;
+    }
+
+    /// Mark the token-usage reminder as sent (prevents repeated injection).
+    pub(crate) fn mark_token_reminder_sent(&mut self) {
+        self.token_reminder_sent = true;
+    }
+
+    /// Clear the token-usage reminder flag (called after compaction frees context).
+    pub(crate) fn clear_token_reminder_sent(&mut self) {
+        self.token_reminder_sent = false;
     }
 }
 

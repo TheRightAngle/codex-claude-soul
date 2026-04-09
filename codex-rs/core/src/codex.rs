@@ -585,7 +585,7 @@ impl Codex {
         // 2. conversation history => session_meta.base_instructions
         // 3. Modular prompt assembly (Claude Soul Edition)
         // 4. base_instructions for current model (fallback)
-        let model_info = models_manager
+        let _model_info = models_manager
             .get_model_info(model.as_str(), &config.to_models_manager_config())
             .await;
         let base_instructions = config
@@ -3673,6 +3673,13 @@ impl Session {
         self.replace_history(items, reference_context_item.clone())
             .await;
 
+        // Compaction freed context — allow the token-usage reminder to fire
+        // again if usage climbs back above the threshold.
+        {
+            let mut state = self.state.lock().await;
+            state.clear_token_reminder_sent();
+        }
+
         self.persist_rollout_items(&[RolloutItem::Compacted(compacted_item)])
             .await;
         if let Some(turn_context_item) = reference_context_item {
@@ -3729,6 +3736,7 @@ impl Session {
             session_source,
             history_has_compaction,
             turns_since_plan_update,
+            plan_ever_used,
             credits_depleted,
         ) = {
             let state = self.state.lock().await;
@@ -3751,6 +3759,7 @@ impl Session {
                 state.session_configuration.session_source.clone(),
                 has_compaction,
                 state.turns_since_plan_update,
+                state.plan_ever_used,
                 credits_low,
             )
         };
@@ -3771,8 +3780,9 @@ impl Session {
             ));
         }
         // TASK_TOOLS: Nudge the model to use update_plan when several turns
-        // have elapsed without a plan update.
-        if turns_since_plan_update > 3 {
+        // have elapsed without a plan update. Only fires if the model has
+        // previously used update_plan, so simple Q&A sessions aren't nagged.
+        if plan_ever_used && turns_since_plan_update > 3 {
             developer_sections.push(crate::reminder_injection::wrap_reminder(
                 codex_protocol::models::reminders::TASK_TOOLS,
             ));
@@ -3781,13 +3791,10 @@ impl Session {
         // in plan mode. Codex RS does not yet persist plan files to disk (the
         // update_plan tool is purely event-driven), so this is a no-op for
         // now. Wire this when plan file persistence is added.
-        // OUTPUT_STYLE: Remind the model to follow output-style guidelines
-        // when a personality is explicitly configured.
-        if turn_context.personality.is_some() {
-            developer_sections.push(crate::reminder_injection::wrap_reminder(
-                codex_protocol::models::reminders::OUTPUT_STYLE,
-            ));
-        }
+        //
+        // OUTPUT_STYLE: Removed — no output style system exists in Codex.
+        // Personality is a model-level hint, not an output style config.
+        // Re-add when a real output style system is implemented.
         // BUDGET_WARNING: Warn the model when credits are depleted so it can
         // wrap up efficiently. Only fires when the backend reports a non-
         // unlimited account with has_credits == false.
@@ -4119,19 +4126,30 @@ impl Session {
             state.token_info_and_rate_limits()
         };
 
-        // Inject TOKEN_USAGE reminder when context window usage exceeds 80%.
-        if let Some(ref token_info) = info {
-            if let Some(model_context_window) = token_info.model_context_window {
-                if model_context_window > 0 {
-                    let used = token_info.total_token_usage.total_tokens as f64;
-                    let max = model_context_window as f64;
-                    if used / max > 0.8 {
-                        crate::reminder_injection::inject_reminder(
-                            self,
-                            turn_context,
-                            codex_protocol::models::reminders::TOKEN_USAGE,
-                        )
-                        .await;
+        // Inject TOKEN_USAGE reminder once when context window usage exceeds 80%.
+        // The flag prevents spamming the same reminder every subsequent turn.
+        {
+            let already_sent = {
+                let state = self.state.lock().await;
+                state.token_reminder_sent
+            };
+            if !already_sent {
+                if let Some(ref token_info) = info {
+                    if let Some(model_context_window) = token_info.model_context_window {
+                        if model_context_window > 0 {
+                            let used = token_info.total_token_usage.total_tokens as f64;
+                            let max = model_context_window as f64;
+                            if used / max > 0.8 {
+                                crate::reminder_injection::inject_reminder(
+                                    self,
+                                    turn_context,
+                                    codex_protocol::models::reminders::TOKEN_USAGE,
+                                )
+                                .await;
+                                let mut state = self.state.lock().await;
+                                state.mark_token_reminder_sent();
+                            }
+                        }
                     }
                 }
             }
