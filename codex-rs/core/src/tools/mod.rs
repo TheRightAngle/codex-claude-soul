@@ -118,6 +118,8 @@ pub fn format_exec_output_str(
 /// Patterns detected:
 /// - Empty or whitespace-only output -> FILE_EMPTY (unless it looks like an error)
 /// - Truncated output -> FILE_TRUNCATED
+/// - Offset-past-end errors -> FILE_SHORTER_THAN_OFFSET
+/// - Suspicious obfuscation patterns -> MALWARE_ANALYSIS_WARNING
 ///
 /// Real errors like "No such file or directory" are left unannotated.
 fn annotate_exec_output(output: String, was_truncated: bool) -> String {
@@ -129,7 +131,7 @@ fn annotate_exec_output(output: String, was_truncated: bool) -> String {
         return output;
     }
 
-    if was_truncated {
+    let mut output = if was_truncated {
         crate::reminder_injection::annotate_tool_result(
             &output,
             codex_protocol::models::reminders::FILE_TRUNCATED,
@@ -138,6 +140,45 @@ fn annotate_exec_output(output: String, was_truncated: bool) -> String {
         crate::reminder_injection::annotate_tool_result(
             &output,
             codex_protocol::models::reminders::FILE_EMPTY,
+        )
+    } else {
+        output
+    };
+
+    // FILE_SHORTER_THAN_OFFSET: Detect shell errors indicating an offset past end of file.
+    if output.contains("offset") && output.contains("exceeds")
+        || output.contains("line count") && output.contains("shorter")
+        || output.contains("tail: cannot open")
+    {
+        output = crate::reminder_injection::annotate_tool_result(
+            &output,
+            codex_protocol::models::reminders::FILE_SHORTER_THAN_OFFSET,
+        );
+    }
+
+    // MALWARE_ANALYSIS_WARNING: Detect suspicious content patterns that may indicate
+    // obfuscated or malicious code in shell output.
+    output = maybe_annotate_suspicious_content(output);
+
+    output
+}
+
+/// Check for common obfuscation/malware patterns in tool output and annotate if found.
+fn maybe_annotate_suspicious_content(output: String) -> String {
+    // Detect eval+base64 combos, hex-encoded payloads, encoded powershell,
+    // and piped-download-to-shell patterns.
+    let has_eval_base64 = output.contains("eval(") && output.contains("base64");
+    let has_hex_payload =
+        output.contains("\\x") && output.len() > 500 && output.matches("\\x").count() > 20;
+    let has_encoded_ps =
+        output.contains("powershell -enc") || output.contains("powershell -e ");
+    let has_piped_download =
+        output.contains("curl | sh") || output.contains("wget -O - |");
+
+    if has_eval_base64 || has_hex_payload || has_encoded_ps || has_piped_download {
+        crate::reminder_injection::annotate_tool_result(
+            &output,
+            codex_protocol::models::reminders::MALWARE_ANALYSIS_WARNING,
         )
     } else {
         output

@@ -1446,6 +1446,12 @@ impl Session {
         state.reset_turns_since_plan_update();
     }
 
+    /// Whether the plan tool was ever used in this session.
+    pub(crate) async fn plan_ever_used(&self) -> bool {
+        let state = self.state.lock().await;
+        state.plan_ever_used
+    }
+
     pub(crate) fn subscribe_out_of_band_elicitation_pause_state(&self) -> watch::Receiver<bool> {
         self.out_of_band_elicitation_paused.subscribe()
     }
@@ -5166,6 +5172,26 @@ mod handlers {
         };
         sess.maybe_emit_unknown_model_warning_for_turn(current_context.as_ref())
             .await;
+
+        // AGENT_MENTION: When user input contains @word patterns, inject a
+        // reminder so the model knows to use the Agent tool for delegation.
+        let has_agent_mention = items.iter().any(|item| {
+            if let UserInput::Text { text, .. } = item {
+                text.split_whitespace()
+                    .any(|w| w.starts_with('@') && w.len() > 1)
+            } else {
+                false
+            }
+        });
+        if has_agent_mention {
+            crate::reminder_injection::inject_reminder(
+                sess,
+                &current_context,
+                codex_protocol::models::reminders::AGENT_MENTION,
+            )
+            .await;
+        }
+
         match sess
             .steer_input(items.clone(), /*expected_turn_id*/ None)
             .await

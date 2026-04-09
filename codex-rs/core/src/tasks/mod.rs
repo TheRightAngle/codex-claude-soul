@@ -532,6 +532,7 @@ impl Session {
 
         // Fire-and-forget: title generation runs after TurnComplete so it
         // can never block the spinner from stopping.
+        let verify_plan_message = title_message.clone();
         if let Some(msg) = title_message {
             let session = Arc::clone(self);
             let sub_id = format!("{}-auto-title", turn_context.sub_id);
@@ -542,6 +543,30 @@ impl Session {
                     }
                 }
             });
+        }
+
+        // VERIFY_PLAN: When the model claims plan completion, nudge it to
+        // double-check that all steps were actually finished.
+        if self.plan_ever_used().await {
+            if let Some(ref msg) = verify_plan_message {
+                let lower = msg.to_lowercase();
+                if lower.contains("all steps complete")
+                    || lower.contains("plan complete")
+                    || lower.contains("all tasks done")
+                    || lower.contains("implementation complete")
+                {
+                    let session = Arc::clone(self);
+                    let tc = Arc::clone(&turn_context);
+                    tokio::spawn(async move {
+                        crate::reminder_injection::inject_reminder(
+                            &session,
+                            &tc,
+                            codex_protocol::models::reminders::VERIFY_PLAN,
+                        )
+                        .await;
+                    });
+                }
+            }
         }
 
         if should_clear_active_turn {
