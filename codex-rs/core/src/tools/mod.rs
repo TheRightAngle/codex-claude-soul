@@ -78,19 +78,23 @@ pub fn format_exec_output_for_model_freeform(
     let total_lines = content.lines().count();
 
     let formatted_output = truncate_text(&content, truncation_policy);
+    let was_truncated = total_lines != formatted_output.lines().count();
 
     let mut sections = Vec::new();
 
     sections.push(format!("Exit code: {}", exec_output.exit_code));
     sections.push(format!("Wall time: {duration_seconds} seconds"));
-    if total_lines != formatted_output.lines().count() {
+    if was_truncated {
         sections.push(format!("Total output lines: {total_lines}"));
     }
 
     sections.push("Output:".to_string());
     sections.push(formatted_output);
 
-    sections.join("\n")
+    let output = sections.join("\n");
+
+    // Post-truncation file-state annotations.
+    annotate_exec_output(output, was_truncated)
 }
 
 pub fn format_exec_output_str(
@@ -99,8 +103,45 @@ pub fn format_exec_output_str(
 ) -> String {
     let content = build_content_with_timeout(exec_output);
 
+    // Check if truncation will be applied (same heuristic as formatted_truncate_text).
+    let will_truncate = content.len() > truncation_policy.byte_budget();
+
     // Truncate for model consumption before serialization.
-    formatted_truncate_text(&content, truncation_policy)
+    let output = formatted_truncate_text(&content, truncation_policy);
+
+    // Post-truncation file-state annotations.
+    annotate_exec_output(output, will_truncate)
+}
+
+/// Detect file-state patterns in formatted output and append system notice annotations.
+///
+/// Patterns detected:
+/// - Empty or whitespace-only output -> FILE_EMPTY (unless it looks like an error)
+/// - Truncated output -> FILE_TRUNCATED
+///
+/// Real errors like "No such file or directory" are left unannotated.
+fn annotate_exec_output(output: String, was_truncated: bool) -> String {
+    // If the output indicates a real filesystem error, don't add file-state annotations.
+    if output.contains("No such file or directory")
+        || output.contains("cannot open")
+        || output.contains("Permission denied")
+    {
+        return output;
+    }
+
+    if was_truncated {
+        crate::reminder_injection::annotate_tool_result(
+            &output,
+            codex_protocol::models::reminders::FILE_TRUNCATED,
+        )
+    } else if output.is_empty() || output.trim().is_empty() {
+        crate::reminder_injection::annotate_tool_result(
+            &output,
+            codex_protocol::models::reminders::FILE_EMPTY,
+        )
+    } else {
+        output
+    }
 }
 
 /// Extracts exec output content and prepends a timeout message if the command timed out.

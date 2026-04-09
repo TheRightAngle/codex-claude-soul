@@ -3806,6 +3806,31 @@ impl Session {
         // USD_BUDGET: Requires a user-configured USD spending cap, which is
         // not yet supported in the Codex RS config. Skip for now.
         //
+        // FILE_MODIFIED_EXTERNALLY: Warn the model when files it has read or
+        // edited have been changed by the user or another process since the
+        // model last touched them.
+        //
+        // Wiring approach (not yet implemented — requires infrastructure):
+        //   1. Add a `FileWatcherSubscriber` to the session (alongside the
+        //      existing SkillsWatcher subscriber created in thread_manager.rs).
+        //   2. In tool handlers for shell (cat/read), apply_patch, and file
+        //      read tools, register each accessed file path with the subscriber
+        //      via `subscriber.register_paths(...)`.
+        //   3. Spawn a listener task on the `Receiver` returned by
+        //      `file_watcher.add_subscriber()`. When `recv()` yields a
+        //      `FileWatcherEvent`, inject FILE_MODIFIED_EXTERNALLY via
+        //      `reminder_injection::inject_reminder()`.
+        //   Alternatively (simpler, no new channels): track patched file paths
+        //   and their `mtime` in session state. At turn start (here), stat each
+        //   tracked path and compare timestamps. If any file has a newer mtime
+        //   than when the model last wrote it, inject the reminder:
+        //     developer_sections.push(crate::reminder_injection::wrap_reminder(
+        //         codex_protocol::models::reminders::FILE_MODIFIED_EXTERNALLY,
+        //     ));
+        //   This approach avoids new event types but only detects changes at
+        //   turn boundaries, not mid-turn. For most interactive use cases that
+        //   is sufficient.
+        //
         // Plan mode variants (PLAN_MODE_ITERATIVE, PLAN_MODE_SUBAGENT,
         // ULTRAPLAN_MODE): Currently only the 5-phase plan mode exists
         // (wired in context_manager::updates). When plan strategy variants
