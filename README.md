@@ -176,6 +176,8 @@ cp target/release/codex ~/.local/bin/
 
 Or grab a pre-built artifact from the [GitHub Actions workflow](.github/workflows/build-claude-soul.yml) (Linux x86_64, macOS arm64, Windows x86_64).
 
+Run `codex` and select **Sign in with ChatGPT**. We recommend signing into your ChatGPT account to use Codex as part of your Plus, Pro, Business, Edu, or Enterprise plan. [Learn more about what's included in your ChatGPT plan](https://help.openai.com/en/articles/11369540-codex-in-chatgpt).
+
 ## CI/CD
 
 `.github/workflows/build-claude-soul.yml` is the only active custom workflow:
